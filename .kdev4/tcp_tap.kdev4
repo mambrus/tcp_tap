@@ -9,3 +9,29 @@ CurrentBuildDir=file:///home/mambrus/repos/tcp_tap/build
 CurrentBuildType=Debug
 CurrentInstallDir=
 ProjectRootRelative=./
+
+[Launch]
+Launch Configurations=Launch Configuration 0
+
+[Launch][Launch Configuration 0]
+Configured Launch Modes=execute,debug
+Configured Launchers=nativeAppLauncher,gdb
+Name=New Native Application Configuration
+Type=Native Application
+
+[Launch][Launch Configuration 0][Data]
+Arguments=
+Debugger Shell=
+Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
+Dependency Action=Nothing
+Display Demangle Names=true
+Display Static Members=false
+EnvironmentGroup=default
+Executable=file:///home/mambrus/repos/tcp_tap/build/tcp_tap
+GDB Path=file:///usr/bin/gdb
+Remote GDB Config Script=
+Remote GDB Run Script=
+Remote GDB Shell Script=
+Try Setting Breakpoints On Loading Libraries=true
+Working Directory=
+isExecutable=true
