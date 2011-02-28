@@ -1,0 +1,4 @@
+[Project]
+Name=tcp_tap
+Manager=KDevCMakeManager
+VersionControl=
