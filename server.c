@@ -13,6 +13,8 @@
 #undef  NDEBUG
 #include <assert.h>
 
+#include "server.h"
+
 #define BACKLOG 5
 
 
@@ -50,6 +52,7 @@ int init_server(int port, const char *hostname){
 	return s;
 }
 
+/* Waits for connection, then returns a fd that can be used for r/w */
 int open_server(int s) {
 	struct sockaddr_in rsin;
 	int fromlen;
