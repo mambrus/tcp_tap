@@ -29,13 +29,12 @@ char port_number[PATH_MAX]="6666";
 #endif
 
 /* Returns a valid socket fd on connection */
-int open_server(int port, const char *hostname){
-	int s,sfd,fromlen;
+int init_server(int port, const char *hostname){
+	int s;
 	char name[PATH_MAX];
 	struct hostent *hp;
-	struct sockaddr_in lsin, rsin;
+	struct sockaddr_in lsin;
 
-	
 	if (!hostname)
 		assert(gethostname(name, sizeof(name) > 0));
 	else
@@ -48,19 +47,24 @@ int open_server(int port, const char *hostname){
 	lsin.sin_port=htons(port);
 	memcpy(&lsin.sin_addr,hp->h_addr,hp->h_length);
 	assert(bind(s, (struct sockaddr *)&lsin, sizeof(lsin) ) >= 0);
+	return s;
+}
+
+int open_server(int s) {
+	struct sockaddr_in rsin;
+	int fromlen;
 
 	assert(listen(s, BACKLOG) >= 0);
 
-	sfd = accept(s,(struct sockaddr *)&rsin,&fromlen);
-	return sfd;
+	return accept(s,(struct sockaddr *)&rsin,&fromlen);
 }
-
 
 #ifdef TEST
 
 void *myThread(void *inarg){
 	int rn, sn;
 	int fd = (int)inarg;
+	char buf[BUFF_SZ];
 	while(1) {
 		rn=read(fd,buf,BUFF_SZ);
 		sn=write(fd,buf,rn);
@@ -70,15 +74,18 @@ void *myThread(void *inarg){
 
 /* Just echo back everything */
 int main(int argc, char **argv) {
-	int fd;
+	int fd,s;
 	int port;
+	pthread_t t_thread;
 
 	port=atoi(port_number);
 	char buf[BUFF_SZ];
 
+	s=init_server(port,"localhost");
 	while(1) {
-		fd=open_server(port,"localhost");
-		assert (pthread_create(&t_thread,  NULL, myThread,  fd) == 0);
+		fd=open_server(s);
+		assert (pthread_create(&t_thread,  NULL, myThread,  (void*)fd) == 0);
+		//sleep(10);
 	}
 	
 	return 0;
