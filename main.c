@@ -19,7 +19,8 @@
 #define BUFF_SZ 0x400
 
 /* flags for all the logs*/
-#define LFLAGS ( O_WRONLY | O_APPEND | O_CREAT | O_CLOEXEC | O_SYNC )
+//#define LFLAGS ( O_WRONLY | O_APPEND | O_CREAT /*| O_CLOEXEC |*/ O_SYNC )
+#define LFLAGS ( O_WRONLY | O_APPEND | O_CREAT | O_SYNC )
 
 /* modes for all the logs */
 #define LMODES 0777
