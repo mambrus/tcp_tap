@@ -13,6 +13,8 @@
 #undef  NDEBUG
 #include <assert.h>
 
+#define BACKLOG 5
+
 
 #ifdef TEST
 /* Environment overloadable variables */
@@ -21,33 +23,64 @@
 char port_number[PATH_MAX]="6666";
 #endif //TEST
 
+/* The size of each buffer used for tranfer in either direction */
+#ifndef BUFF_SZ
+#define BUFF_SZ 0x400
+#endif
 
-#ifdef TEST
-int main(int argc, char **argv) {
-	int port,s,sfd;
-	char hostname[PATH_MAX];
+/* Returns a valid socket fd on connection */
+int open_server(int port, const char *hostname){
+	int s,sfd,fromlen;
+	char name[PATH_MAX];
 	struct hostent *hp;
 	struct sockaddr_in lsin, rsin;
 
-	port=atoi(port_number);
 	
-	assert(gethostname(hostname, sizeof(hostname) > 0));
-	sprintf(hostname,"%s","mambrus-laptop");
+	if (!hostname)
+		assert(gethostname(name, sizeof(name) > 0));
+	else
+		strncpy(name,hostname,PATH_MAX);
 
-	assert( (hp = gethostbyname(hostname)) != NULL );
+	assert( (hp = gethostbyname(name)) != NULL );
 
 	assert( (s=socket(AF_INET, SOCK_STREAM,0)) >= 0 );
 	lsin.sin_family = AF_INET;
 	lsin.sin_port=htons(port);
 	memcpy(&lsin.sin_addr,hp->h_addr,hp->h_length);
-	assert(bind(s, &lsin, sizeof(lsin) ) >= 0);
+	assert(bind(s, (struct sockaddr *)&lsin, sizeof(lsin) ) >= 0);
 
-	assert(listen(s, 5) >= 0);
+	assert(listen(s, BACKLOG) >= 0);
 
-	sfd = accept(s,&rsin
+	sfd = accept(s,(struct sockaddr *)&rsin,&fromlen);
+	return sfd;
+}
+
+
+#ifdef TEST
+
+void *myThread(void *inarg){
+	int rn, sn;
+	int fd = (int)inarg;
+	while(1) {
+		rn=read(fd,buf,BUFF_SZ);
+		sn=write(fd,buf,rn);
+		assert(rn==sn);
+	}
+}
+
+/* Just echo back everything */
+int main(int argc, char **argv) {
+	int fd;
+	int port;
+
+	port=atoi(port_number);
+	char buf[BUFF_SZ];
+
+	while(1) {
+		fd=open_server(port,"localhost");
+		assert (pthread_create(&t_thread,  NULL, myThread,  fd) == 0);
+	}
 	
-
-	printf("Hostname: [%s], Port: [%d]\n",hostname,port);
 	return 0;
 }
 #endif //TEST

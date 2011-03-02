@@ -16,7 +16,9 @@
 #define MAX_ARGS 50
 
 /* The size of each buffer used for tranfer in either direction */
+#ifndef BUFF_SZ
 #define BUFF_SZ 0x400
+#endif
 
 /* flags for all the logs*/
 //#define LFLAGS ( O_WRONLY | O_APPEND | O_CREAT /*| O_CLOEXEC |*/ O_SYNC )
