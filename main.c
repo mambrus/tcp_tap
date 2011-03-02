@@ -25,9 +25,7 @@
 /* modes for all the logs */
 #define LMODES 0777
 
-
-/* Reason for the below names to be arrays and not defines is that they are to be
- * read from environment variables in future*/
+/* Environment overloadable variables */
 
 /* Where to put intermediate files and pipes */
 char log_path[PATH_MAX]="/tmp/tcp_tap";
@@ -43,6 +41,10 @@ char execute_bin[PATH_MAX]="/skiff/bin/arm-hixs-elf-gdb";
 /* Some log-files */
 char parent_log_name[PATH_MAX]="parent.log";
 char child_log_name[PATH_MAX]="child.log";	//stderr for the child piped here
+
+/* Port number */
+char log_path[PATH_MAX]="/tmp/tcp_tap";
+
 
 /* Transfer types */
 struct data_link {
