@@ -1,7 +1,13 @@
 #ifndef switchboard_h
 #define switchboard_h
 
+#include <mqueue.h>
+
 /* Returns server socket, close this to close all servlets */
 int init_switchboard(int port, const char *hostname, int echoall);
+int switchboard_start(int port, const char *host, int echo);
+
+#define Q_TO_SWTCH "/tmp/q_to_swtch"
+#define Q_FROM_SWTCH "/tmp/q_from_swtch"
 
 #endif

@@ -19,6 +19,13 @@
 #define BUFF_SZ 0x400
 #endif
 
+#ifdef TEST2
+/* Environment overloadable variables */
+
+/* Port number */
+char port_number[PATH_MAX]="6666";
+#endif //TEST
+
 struct serv_node {
 	int					fd;		/* File descriptor */
 	struct serv_node*	next;
@@ -40,52 +47,143 @@ struct switch_struct ss = {
 };
 
 int init_switchboard(int port, const char *hostname, int echoall){
+	int s;
+
 	ss.ea = echoall;
-	ss.s=init_server(port,"localhost");
-	return ss.s;
+	s=init_server(port,hostname);
+	ss.s=s;
+	return s;
 }
 
-static void *myThread(void *inarg){
-	int rn, sn;
-	int fd = (int)inarg;
-	char buf[BUFF_SZ];
-	while(1) {
-		struct serv_node *ln=ss.serv_list;
-		rn=read(fd,buf,BUFF_SZ);
-		if (ss.ea) {
-			while (ln->next) {
-				sn=write(ln->fd,buf,rn);
-				assert(rn==sn);
-				ln=ln->next;
-			}
+static void write_toall(const char *buf, int len) {
+	int sn;
+
+	struct serv_node *ln=ss.serv_list;
+	if (ss.ea) {
+		while (ln) {
+			sn=write(ln->fd,buf,len);
+			assert(len==sn);
+			ln=ln->next;
 		}
 	}
 }
 
-#ifdef TEST_SWITCH
+static void *shuffleThread(void *inarg){
+	int rn, sn;
+	int fdo,fd = (int)inarg;
+	char buf[BUFF_SZ];
+	assert((fdo=open(Q_FROM_SWTCH,O_WRONLY)) >=0);
+
+	while(1) {
+		rn=read(fd,buf,BUFF_SZ);
+		write_toall(buf,rn);
+		write(fdo,buf,rn);
+		assert(sn=rn);
+	}
+}
+
+void *to_swtch_thread(void *arg) {
+	char buf[BUFF_SZ];
+	int rn,fd;
+
+	assert((fd=open(Q_TO_SWTCH,O_RDONLY)) >=0);
+
+	while (1) {
+		rn=read(fd,buf,BUFF_SZ);
+		write_toall(buf,rn);
+	}
+	return NULL;
+}
+
 
 /* Just echo back everything */
-int main(int argc, char **argv) {
+int switchboard_start(int port, const char *host, int echo){
 	int fd,s;
-	struct serv_node *tn,*ln;
+	struct serv_node *tn,**lnp,*lp;
+	pthread_t			to_swtch;
 
-	s=init_switchboard(6666,"localhost",1);
+	assert (pthread_create(&to_swtch,  NULL, to_swtch_thread,  NULL) == 0);
+	
+	s=init_switchboard(port,host,echo);
+	//ss.ea = echo;
+	//s=init_server(6666,"localhost");
+	//ss.s=s;
+
 	while(1) {
-		fd=open_server(s);
+		assert((fd=open_server(s)) >= 0);
 		tn=malloc(sizeof(struct serv_node));
+		tn->fd=fd;
 		tn->next=NULL;
 
-		ln=ss.serv_list;
-		while(ln->next)
-			ln=ln->next;
+		lnp=&ss.serv_list;
+		while(*lnp){
+			lp=(struct serv_node*)(*lnp);
+			lnp=&(lp->next);
+			//lnp=&(*((struct serv_node*)(*lnp)).next);
+		}
 
-		ln->next=tn;
-
+		*lnp=tn;
+		
 		ss.n++;
-		assert (pthread_create(&ln->thread,  NULL, myThread,  (void*)fd) == 0);
+		assert (pthread_create(&tn->thread,  NULL, shuffleThread,  (void*)fd) == 0);
 		//sleep(10);
 	}
 	
 	return 0;
 }
+
+#ifdef TEST_SWITCH
+int main(int argc, char **argv) {
+	int rfd,wfd;
+
+	mkfifo(Q_TO_SWTCH,0777);
+	mkfifo(Q_FROM_SWTCH,0777);
+
+	assert((rfd=open(Q_FROM_SWTCH,O_RDONLY)) >=0);
+	assert((wfd=open(Q_TO_SWTCH,O_WRONLY)) >=0);
+
+	close(0);
+	dup(rfd);
+
+	close(1);
+	dup(wfd);
+
+
+	switchboard_start(6666,"localhost",1);
+
+	return 0;
+}
 #endif //TEST_SWITCH
+
+#ifdef TEST2
+
+void *myThread(void *inarg){
+	int rn, sn;
+	int fd = (int)inarg;
+	char buf[BUFF_SZ];
+	while(1) {
+		rn=read(fd,buf,BUFF_SZ);
+		sn=write(fd,buf,rn);
+		assert(rn==sn);
+	}
+}
+
+/* Just echo back everything */
+int main(int argc, char **argv) {
+	int fd,s;
+	int port;
+	pthread_t t_thread;
+
+	port=atoi(port_number);
+	char buf[BUFF_SZ];
+
+	s=init_server(port,"localhost");
+	while(1) {
+		fd=open_server(s);
+		assert (pthread_create(&t_thread,  NULL, myThread,  (void*)fd) == 0);
+		//sleep(10);
+	}
+	
+	return 0;
+}
+#endif //TEST2

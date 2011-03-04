@@ -32,11 +32,12 @@ char port_number[PATH_MAX]="6666";
 
 /* Returns a valid socket fd on connection */
 int init_server(int port, const char *hostname){
-	int s;
-	char name[PATH_MAX];
-	struct hostent *hp;
-	struct sockaddr_in lsin;
+	static int s;
+	static char name[PATH_MAX];
+	static struct hostent *hp;
+	static struct sockaddr_in lsin;
 
+//int init_server(int port, const char *hostname){
 	if (!hostname)
 		assert(gethostname(name, sizeof(name) > 0));
 	else
