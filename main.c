@@ -148,7 +148,8 @@ int main(int argc, char **argv) {
 	char *exec_args[MAX_ARGS];
 	char buf_to_child[BUFF_SZ];
 	char buf_to_parent[BUFF_SZ];
-	int pid,i,j,k;
+	int pid,wpid,status;
+	int i,j,k,s;
 	pthread_t pt_to_child;
 	pthread_t pt_to_parent;
 	pthread_t pt_from_tcp;
@@ -171,6 +172,9 @@ int main(int argc, char **argv) {
 	assert((child_err_fd=open(child_log_name, LFLAGS, LMODES)) > 0);
 	assert((parent_log_fd=open(parent_log_name, LFLAGS, LMODES)) > 0);
 
+	close(2);
+	dup(stderrlog_fd);
+
 	pipe(pipe_to_child);
 	pipe(pipe_to_parent);
 
@@ -180,7 +184,7 @@ int main(int argc, char **argv) {
 		exec_args[i]=argv[i];
 	}
 
-	pid = fork();
+	assert((pid = fork()) >= 0);
 
 	if (pid == 0) {
 		/* Child excutes this */
@@ -245,13 +249,24 @@ int main(int argc, char **argv) {
 
 	assert (pthread_create(&pt_to_child,  NULL, to_child,  &link_to_child) == 0);
 	assert (pthread_create(&pt_to_parent, NULL, to_parent, &link_to_parent) == 0);
-	switchboard_init(atoi(port),"localhost",1);
+	s=switchboard_init(atoi(port),"localhost",1);
 	assert (pthread_create(&pt_from_tcp, NULL, from_tcp, &link_to_child) == 0);
-	
-	assert (pthread_join(pt_to_parent, NULL) == 0);
-	assert (pthread_join(pt_to_child, NULL) == 0);
-	while ( wait((int*)0) != pid )
-		;
+
+	do {
+		wpid=waitpid( pid, &status, WUNTRACED );
+		assert (wpid >=0 );
+	} while (!WIFEXITED(status) && !WIFSIGNALED(status));
+
+	pthread_cancel(pt_from_tcp);
+	switchboard_die(s);
+	pthread_cancel(pt_to_parent);
+	pthread_cancel(pt_from_tcp);
+
+	sprintf(buf_to_parent,"tcp_tap parent exiting. Thanks for the fish...\n");
+	write(parent_log_fd, buf_to_parent, strnlen(buf_to_parent,BUFF_SZ) );
+	sprintf(buf_to_child,"tcp_tap child has exitited. Bye bye!\n");
+	write(child_err_fd, buf_to_child, strnlen(buf_to_child,BUFF_SZ) );
+
 	close(parent_log_fd);
 	close(child_err_fd);
 	close(stdinlog_fd);

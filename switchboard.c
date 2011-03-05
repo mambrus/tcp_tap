@@ -39,6 +39,11 @@ struct switch_struct {
 	struct serv_node	*serv_list;
 };
 
+struct threads_t {
+	pthread_t			to_swtch;
+	pthread_t			mngmt;
+} threads;
+
 struct switch_struct ss = {
 	.s			= 0,
 	.n			= 0,
@@ -98,10 +103,9 @@ void *to_swtch_thread(void *arg) {
 void * switchboard_start_mngmt(void *S){
 	int s = (int)S;
 	int fd;
-	pthread_t			to_swtch;
 	struct serv_node *tn,**lnp,*lp;
-	
-	
+
+
 	while(1) {
 		assert((fd=open_server(s)) >= 0);
 		tn=malloc(sizeof(struct serv_node));
@@ -116,7 +120,7 @@ void * switchboard_start_mngmt(void *S){
 		}
 
 		*lnp=tn;
-		
+
 		ss.n++;
 		assert (pthread_create(&tn->thread,  NULL, shuffleThread,  (void*)fd) == 0);
 		//sleep(10);
@@ -126,20 +130,37 @@ void * switchboard_start_mngmt(void *S){
 
 /* Just echo back everything */
 int switchboard_init(int port, const char *host, int echo){
-	pthread_t			to_swtch,mngmt;
 	int s;
 
 	mkfifo(Q_TO_SWTCH,0777);
 	mkfifo(Q_FROM_SWTCH,0777);
 
-	
+
 	s=init_switchboard(port,host,echo);
 	//ss.ea = echo;
 	//s=init_server(6666,"localhost");
 	//ss.s=s;
 
-	assert (pthread_create(&to_swtch,  NULL, to_swtch_thread,  NULL) == 0);
-	assert (pthread_create(&mngmt,  NULL, switchboard_start_mngmt, (void*)s ) == 0);
+	assert (pthread_create(&threads.to_swtch,  NULL, to_swtch_thread,  NULL) == 0);
+	assert (pthread_create(&threads.mngmt,  NULL, switchboard_start_mngmt, (void*)s ) == 0);
+	return s;
+}
+
+void switchboard_die(int s) {
+	struct serv_node *ln=ss.serv_list;
+
+	pthread_cancel(threads.mngmt);
+	pthread_cancel(threads.to_swtch);
+
+	if (ss.ea) {
+		while (ln) {
+			pthread_cancel(ln->thread);
+			assert(close(ln->fd) == 0);
+			ln=ln->next;
+		}
+	}
+
+	assert(close(s) == 0);
 }
 
 #ifdef TEST_SWITCH
@@ -214,7 +235,7 @@ int main(int argc, char **argv) {
 		assert (pthread_create(&t_thread,  NULL, myThread,  (void*)fd) == 0);
 		//sleep(10);
 	}
-	
+
 	return 0;
 }
 #endif //TEST2

@@ -16,6 +16,8 @@
 #include "server.h"
 
 #define BACKLOG 5
+#define MAX_RETRY 3
+#define RETRY_US  20000000
 
 
 #ifdef TEST
@@ -32,10 +34,10 @@ char port_number[PATH_MAX]="6666";
 
 /* Returns a valid socket fd on connection */
 int init_server(int port, const char *hostname){
-	static int s;
-	static char name[PATH_MAX];
-	static struct hostent *hp;
-	static struct sockaddr_in lsin;
+	int s,n;
+	char name[PATH_MAX];
+	struct hostent *hp;
+	struct sockaddr_in lsin;
 	int rc;
 
 //int init_server(int port, const char *hostname){
@@ -50,10 +52,18 @@ int init_server(int port, const char *hostname){
 	lsin.sin_family = AF_INET;
 	lsin.sin_port=htons(port);
 	memcpy(&lsin.sin_addr,hp->h_addr,hp->h_length);
-	rc=bind(s, (struct sockaddr *)&lsin, sizeof(lsin) );
-	if (rc<0){
-		perror("bind:");
-		exit -1;
+
+
+	for (n=0; n<MAX_RETRY; n++) {
+		//s=socket(AF_INET, SOCK_STREAM,0);
+		rc=bind(s, (struct sockaddr *)&lsin, sizeof(lsin) );
+		if (rc<0){
+			perror("bind: ");
+			fprintf(stderr,"Retry: %d of %d\n",n+1,MAX_RETRY);
+			//close(s);
+			usleep(RETRY_US);
+		}else
+			break;
 	}
 	return s;
 }
@@ -62,10 +72,21 @@ int init_server(int port, const char *hostname){
 int open_server(int s) {
 	struct sockaddr_in rsin;
 	int fromlen;
+	int rc,n,nmax;
 
-	assert(listen(s, BACKLOG) >= 0);
+	for (n=0; n<MAX_RETRY; n++) {
+		assert(listen(s, BACKLOG) >= 0);
 
-	return accept(s,(struct sockaddr *)&rsin,&fromlen);
+		rc=accept(s,(struct sockaddr *)&rsin,&fromlen);
+		if (rc<0) {
+			/* print error reason to stderr, but dong exit */
+			perror("accept: ");
+			fprintf(stderr,"Retry %d of %d\n",n+1,MAX_RETRY);
+			usleep(RETRY_US);
+		}else
+			break;
+	}
+	return rc;
 }
 
 #ifdef TEST
@@ -96,7 +117,7 @@ int main(int argc, char **argv) {
 		assert (pthread_create(&t_thread,  NULL, myThread,  (void*)fd) == 0);
 		//sleep(10);
 	}
-	
+
 	return 0;
 }
 #endif //TEST

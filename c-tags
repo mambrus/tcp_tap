@@ -1,0 +1,68 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+BACKLOG	server.c	18;"	d	file:
+BUFF_SZ	main.c	21;"	d	file:
+BUFF_SZ	server.c	30;"	d	file:
+BUFF_SZ	switchboard.c	19;"	d	file:
+LFLAGS	main.c	26;"	d	file:
+LMODES	main.c	29;"	d	file:
+MAX_ARGS	main.c	17;"	d	file:
+NDEBUG	main.c	13;"	d	file:
+NDEBUG	server.c	13;"	d	file:
+NDEBUG	switchboard.c	13;"	d	file:
+Q_FROM_SWTCH	switchboard.h	11;"	d
+Q_TO_SWTCH	switchboard.h	10;"	d
+SETFROMENV	main.c	48;"	d	file:
+buffer	main.c	/^	char *buffer;$/;"	m	struct:data_link	file:
+child_log_name	main.c	/^char child_log_name[PATH_MAX]="\/tmp\/tcp_tap_child.log";	\/\/stderr for the child$/;"	v
+data_link	main.c	/^struct data_link {$/;"	s	file:
+ea	switchboard.c	/^	int					ea;    \/* Do echo to all *\/$/;"	m	struct:switch_struct	file:
+execute_bin	main.c	/^char execute_bin[PATH_MAX]="\/skiff\/bin\/arm-hixs-elf-gdb";$/;"	v
+fd	switchboard.c	/^	int					fd;		\/* File descriptor *\/$/;"	m	struct:serv_node	file:
+from_stdin	switchboard.c	/^void *from_stdin(void *arg){$/;"	f
+from_tcp	main.c	/^void *from_tcp(void *arg){$/;"	f
+init_server	server.c	/^int init_server(int port, const char *hostname){$/;"	f
+init_switchboard	switchboard.c	/^int init_switchboard(int port, const char *hostname, int echoall){$/;"	f
+log_to	main.c	/^	int log_to;$/;"	m	struct:data_link	file:
+main	main.c	/^int main(int argc, char **argv) {$/;"	f
+main	server.c	/^int main(int argc, char **argv) {$/;"	f
+main	switchboard.c	/^int main(int argc, char **argv) {$/;"	f
+mngmt	switchboard.c	/^	pthread_t			mngmt;$/;"	m	struct:threads_t	file:
+myThread	server.c	/^void *myThread(void *inarg){$/;"	f
+myThread	switchboard.c	/^void *myThread(void *inarg){$/;"	f
+n	switchboard.c	/^	int					n;     \/* Number of connections *\/$/;"	m	struct:switch_struct	file:
+next	switchboard.c	/^	struct serv_node*	next;$/;"	m	struct:serv_node	typeref:struct:serv_node::serv_node	file:
+open_server	server.c	/^int open_server(int s) {$/;"	f
+parent_log_name	main.c	/^char parent_log_name[PATH_MAX]="\/tmp\/tcp_tap_parent.log";$/;"	v
+port	main.c	/^char port[PATH_MAX]="6969";$/;"	v
+port_number	server.c	/^char port_number[PATH_MAX]="6666";$/;"	v
+port_number	switchboard.c	/^char port_number[PATH_MAX]="6666";$/;"	v
+read_from	main.c	/^	int read_from;$/;"	m	struct:data_link	file:
+s	switchboard.c	/^	int					s;$/;"	m	struct:switch_struct	file:
+serv_list	switchboard.c	/^	struct serv_node	*serv_list;$/;"	m	struct:switch_struct	typeref:struct:switch_struct::serv_node	file:
+serv_node	switchboard.c	/^struct serv_node {$/;"	s	file:
+server_h	server.h	2;"	d
+shuffleThread	switchboard.c	/^static void *shuffleThread(void *inarg){$/;"	f	file:
+ss	switchboard.c	/^struct switch_struct ss = {$/;"	v	typeref:struct:switch_struct
+stderr_name	main.c	/^char stderr_name[PATH_MAX]="\/tmp\/tcp_tap_stderr";$/;"	v
+stdin_name	main.c	/^char stdin_name[PATH_MAX]="\/tmp\/tcp_tap_stdin";$/;"	v
+stdout_name	main.c	/^char stdout_name[PATH_MAX]="\/tmp\/tcp_tap_stdout";$/;"	v
+switch_struct	switchboard.c	/^struct switch_struct {$/;"	s	file:
+switchboard_die	switchboard.c	/^void switchboard_die(int s) {$/;"	f
+switchboard_h	switchboard.h	2;"	d
+switchboard_init	switchboard.c	/^int switchboard_init(int port, const char *host, int echo){$/;"	f
+switchboard_start_mngmt	switchboard.c	/^void * switchboard_start_mngmt(void *S){$/;"	f
+thread	switchboard.c	/^	pthread_t			thread;$/;"	m	struct:serv_node	file:
+threads	switchboard.c	/^} threads;$/;"	v	typeref:struct:threads_t
+threads_t	switchboard.c	/^struct threads_t {$/;"	s	file:
+to_child	main.c	/^void *to_child(void *arg){$/;"	f
+to_parent	main.c	/^void *to_parent(void *arg){$/;"	f
+to_stdout	switchboard.c	/^void *to_stdout(void *arg){$/;"	f
+to_swtch	switchboard.c	/^	pthread_t			to_swtch;$/;"	m	struct:threads_t	file:
+to_swtch_thread	switchboard.c	/^void *to_swtch_thread(void *arg) {$/;"	f
+write_to	main.c	/^	int write_to;$/;"	m	struct:data_link	file:
+write_toall	switchboard.c	/^static void write_toall(const char *buf, int len) {$/;"	f	file:
