@@ -36,6 +36,7 @@ int init_server(int port, const char *hostname){
 	static char name[PATH_MAX];
 	static struct hostent *hp;
 	static struct sockaddr_in lsin;
+	int rc;
 
 //int init_server(int port, const char *hostname){
 	if (!hostname)
@@ -49,7 +50,11 @@ int init_server(int port, const char *hostname){
 	lsin.sin_family = AF_INET;
 	lsin.sin_port=htons(port);
 	memcpy(&lsin.sin_addr,hp->h_addr,hp->h_length);
-	assert(bind(s, (struct sockaddr *)&lsin, sizeof(lsin) ) >= 0);
+	rc=bind(s, (struct sockaddr *)&lsin, sizeof(lsin) );
+	if (rc<0){
+		perror("bind:");
+		exit -1;
+	}
 	return s;
 }
 

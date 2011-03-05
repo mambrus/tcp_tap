@@ -95,20 +95,13 @@ void *to_swtch_thread(void *arg) {
 	return NULL;
 }
 
-
-/* Just echo back everything */
-int switchboard_start(int port, const char *host, int echo){
-	int fd,s;
-	struct serv_node *tn,**lnp,*lp;
+void * switchboard_start_mngmt(void *S){
+	int s = (int)S;
+	int fd;
 	pthread_t			to_swtch;
-
-	assert (pthread_create(&to_swtch,  NULL, to_swtch_thread,  NULL) == 0);
+	struct serv_node *tn,**lnp,*lp;
 	
-	s=init_switchboard(port,host,echo);
-	//ss.ea = echo;
-	//s=init_server(6666,"localhost");
-	//ss.s=s;
-
+	
 	while(1) {
 		assert((fd=open_server(s)) >= 0);
 		tn=malloc(sizeof(struct serv_node));
@@ -128,26 +121,64 @@ int switchboard_start(int port, const char *host, int echo){
 		assert (pthread_create(&tn->thread,  NULL, shuffleThread,  (void*)fd) == 0);
 		//sleep(10);
 	}
-	
-	return 0;
+
 }
 
-#ifdef TEST_SWITCH
-int main(int argc, char **argv) {
-	int rfd,wfd;
+/* Just echo back everything */
+int switchboard_init(int port, const char *host, int echo){
+	pthread_t			to_swtch,mngmt;
+	int s;
 
 	mkfifo(Q_TO_SWTCH,0777);
 	mkfifo(Q_FROM_SWTCH,0777);
 
-	assert((rfd=open(Q_FROM_SWTCH,O_RDONLY)) >=0);
+	
+	s=init_switchboard(port,host,echo);
+	//ss.ea = echo;
+	//s=init_server(6666,"localhost");
+	//ss.s=s;
+
+	assert (pthread_create(&to_swtch,  NULL, to_swtch_thread,  NULL) == 0);
+	assert (pthread_create(&mngmt,  NULL, switchboard_start_mngmt, (void*)s ) == 0);
+}
+
+#ifdef TEST_SWITCH
+
+void *from_stdin(void *arg){
+	int rn,sn;
+	int wfd;
+	char buf[BUFF_SZ];
+
+	usleep(100000);
 	assert((wfd=open(Q_TO_SWTCH,O_WRONLY)) >=0);
 
-	close(0);
-	dup(rfd);
+	while(1){
+		rn=read(1,buf,BUFF_SZ);
+		sn=write(wfd,buf,rn);
+		assert(rn==sn);
+	}
+}
 
-	close(1);
-	dup(wfd);
+void *to_stdout(void *arg){
+	int rn,sn;
+	int rfd;
+	char buf[BUFF_SZ];
 
+	usleep(100000);
+	assert((rfd=open(Q_FROM_SWTCH,O_RDONLY)) >=0);
+
+	while(1){
+		rn=read(rfd,buf,BUFF_SZ);
+		sn=write(2,buf,rn);
+		assert(rn==sn);
+	}
+}
+
+int main(int argc, char **argv) {
+	pthread_t thread1,thread2;
+
+	assert (pthread_create(&thread1,  NULL, from_stdin,  NULL) == 0);
+	assert (pthread_create(&thread2,  NULL, to_stdout,  NULL) == 0);
 
 	switchboard_start(6666,"localhost",1);
 

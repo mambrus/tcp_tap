@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include "switchboard.h"
 
 #undef  NDEBUG
 #include <assert.h>
@@ -37,15 +38,15 @@ char stdin_name[PATH_MAX]="stdin";
 char stdout_name[PATH_MAX]="stdout";
 char stderr_name[PATH_MAX]="stderr";
 
-/* Name of the main process to run */
-char execute_bin[PATH_MAX]="/skiff/bin/arm-hixs-elf-gdb";
-
 /* Some log-files */
 char parent_log_name[PATH_MAX]="parent.log";
 char child_log_name[PATH_MAX]="child.log";	//stderr for the child piped here
 
+/* Name of the main process to run */
+char execute_bin[PATH_MAX]="/skiff/bin/arm-hixs-elf-gdb";
+
 /* Port number */
-char log_path[PATH_MAX]="/tmp/tcp_tap";
+char port[PATH_MAX]="6969";
 
 
 /* Transfer types */
@@ -60,18 +61,22 @@ struct data_link {
 
 /* Transfers stdin and sends to child (and TCP sockes, if any) */
 void *to_child(void *arg){
-	int i,j;
+	int i,j,wfd;
 	struct data_link *lp = (struct data_link *)arg;
+
+	assert((wfd=open(Q_TO_SWTCH,O_WRONLY)) >=0);
 
 	while (1){
 		i=read(lp->read_from, lp->buffer, BUFF_SZ);
 		if (i<0) {
-			perror("Failed reading from link");
+			perror("Failed reading from pipe");
 			exit(-1);
 		}
 		j=write(lp->write_to, lp->buffer, i);
 		assert(i==j);
 		j=write(lp->log_to, lp->buffer, i);
+		assert(i==j);
+		j=write(wfd, lp->buffer, i);
 		assert(i==j);
 	}
 	return NULL;
@@ -79,13 +84,44 @@ void *to_child(void *arg){
 
 /* Transfers output from child and sends to stdout(and TCP socket, if any) */
 void *to_parent(void *arg){
-	int i,j;
+	int i,j,wfd;
 	struct data_link *lp = (struct data_link *)arg;
+
+	assert((wfd=open(Q_TO_SWTCH,O_WRONLY)) >=0);
 
 	while (1){
 		i=read(lp->read_from, lp->buffer, BUFF_SZ);
 		if (i<0) {
-			perror("Failed reading from link");
+			perror("Failed reading from pipe");
+			exit(-1);
+		}
+		j=write(lp->write_to, lp->buffer, i);
+		assert(i==j);
+		j=write(lp->log_to, lp->buffer, i);
+		assert(i==j);
+		j=write(wfd, lp->buffer, i);
+		assert(i==j);
+	}
+	return NULL;
+}
+
+/* Transfers from TCP and sends to child */
+void *from_tcp(void *arg){
+	int i,j,rfd;
+	struct data_link *lp = (struct data_link *)arg;
+	char tbuf[BUFF_SZ];
+
+	assert((rfd=open(Q_FROM_SWTCH,O_RDONLY)) >=0);
+
+	while (1){
+		i=read(rfd, lp->buffer, BUFF_SZ);
+		/*
+		i--;
+		lp->buffer[i]=0;
+		lp->buffer[i-1]='\r';
+		*/
+		if (i<0) {
+			perror("Failed reading from TCP");
 			exit(-1);
 		}
 		j=write(lp->write_to, lp->buffer, i);
@@ -108,8 +144,21 @@ int main(int argc, char **argv) {
 	int pid,i,j,k;
 	pthread_t pt_to_child;
 	pthread_t pt_to_parent;
+	pthread_t pt_from_tcp;
 	struct data_link link_to_child;
 	struct data_link link_to_parent;
+	char *ts;
+
+	
+	if ((ts=getenv("TCP_TAP_EXEC")) != NULL ) {
+	//	memset(execute_bin,0,PATH_MAX);
+	//	strncpy(execute_bin,ts,PATH_MAX);a <--evil!!
+	}
+	
+	if ((ts=getenv("TCP_TAP_PORT")) != NULL ) {
+	//	memset(port,0,PATH_MAX);
+	//	strncpy(port,ts,PATH_MAX);
+	}
 
 	assert(argc<MAX_ARGS);
 
@@ -205,6 +254,9 @@ int main(int argc, char **argv) {
 
 	assert (pthread_create(&pt_to_child,  NULL, to_child,  &link_to_child) == 0);
 	assert (pthread_create(&pt_to_parent, NULL, to_parent, &link_to_parent) == 0);
+	switchboard_init(atoi(port),"localhost",1);
+	assert (pthread_create(&pt_from_tcp, NULL, from_tcp, &link_to_child) == 0);
+	
 	assert (pthread_join(pt_to_parent, NULL) == 0);
 	assert (pthread_join(pt_to_child, NULL) == 0);
 	while ( wait((int*)0) != pid )
