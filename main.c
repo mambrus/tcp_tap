@@ -30,17 +30,14 @@
 
 /* Environment overloadable variables */
 
-/* Where to put intermediate files and pipes */
-char log_path[PATH_MAX]="/tmp/tcp_tap";
-
 /* stdin,stdout,stderr for the native process */
-char stdin_name[PATH_MAX]="stdin";
-char stdout_name[PATH_MAX]="stdout";
-char stderr_name[PATH_MAX]="stderr";
+char stdin_name[PATH_MAX]="/tmp/tcp_tap_stdin";
+char stdout_name[PATH_MAX]="/tmp/tcp_tap_stdout";
+char stderr_name[PATH_MAX]="/tmp/tcp_tap_stderr";
 
 /* Some log-files */
-char parent_log_name[PATH_MAX]="parent.log";
-char child_log_name[PATH_MAX]="child.log";	//stderr for the child piped here
+char parent_log_name[PATH_MAX]="/tmp/tcp_tap_parent.log";
+char child_log_name[PATH_MAX]="/tmp/tcp_tap_child.log";	//stderr for the child
 
 /* Name of the main process to run */
 char execute_bin[PATH_MAX]="/skiff/bin/arm-hixs-elf-gdb";
@@ -48,6 +45,16 @@ char execute_bin[PATH_MAX]="/skiff/bin/arm-hixs-elf-gdb";
 /* Port number */
 char port[PATH_MAX]="6969";
 
+#define SETFROMENV( envvar, locvar, buf_max)				\
+{															\
+	char *ts;												\
+	if ((ts=getenv(#envvar)) != NULL ) {					\
+		int l;												\
+		memset(locvar,0,buf_max);							\
+		l=strnlen(ts,buf_max);								\
+		memcpy(locvar,ts,l<buf_max?l:buf_max);				\
+	}														\
+}
 
 /* Transfer types */
 struct data_link {
@@ -118,7 +125,7 @@ void *from_tcp(void *arg){
 		/*
 		i--;
 		lp->buffer[i]=0;
-		lp->buffer[i-1]='\r';
+		lp->buffer[i-1]='\n';
 		*/
 		if (i<0) {
 			perror("Failed reading from TCP");
@@ -147,38 +154,22 @@ int main(int argc, char **argv) {
 	pthread_t pt_from_tcp;
 	struct data_link link_to_child;
 	struct data_link link_to_parent;
-	char *ts;
-
-	
-	if ((ts=getenv("TCP_TAP_EXEC")) != NULL ) {
-	//	memset(execute_bin,0,PATH_MAX);
-	//	strncpy(execute_bin,ts,PATH_MAX);a <--evil!!
-	}
-	
-	if ((ts=getenv("TCP_TAP_PORT")) != NULL ) {
-	//	memset(port,0,PATH_MAX);
-	//	strncpy(port,ts,PATH_MAX);
-	}
 
 	assert(argc<MAX_ARGS);
 
-	/* Ignore any error when creating tempdir*/
-	mkdir(log_path, 0777);
+	SETFROMENV( TCP_TAP_EXEC,		execute_bin,		PATH_MAX);
+	SETFROMENV( TCP_TAP_PORT,		port,				PATH_MAX);
+	SETFROMENV( TCP_TAP_LOG_STDIN,	stdin_name,			PATH_MAX);
+	SETFROMENV( TCP_TAP_LOG_STDOUT,	stdout_name,		PATH_MAX);
+	SETFROMENV( TCP_TAP_LOG_STDERR,	stderr_name,		PATH_MAX);
+	SETFROMENV( TCP_TAP_LOG_PARENT,	parent_log_name,	PATH_MAX);
+	SETFROMENV( TCP_TAP_LOG_CHILD,	child_log_name,		PATH_MAX);
 
-	snprintf(tname,PATH_MAX,"%s/%s",log_path,stdin_name);
-	assert((stdinlog_fd=open(tname, LFLAGS, LMODES)) > 0);
-
-	snprintf(tname,PATH_MAX,"%s/%s",log_path,stdout_name);
-	assert((stdoutlog_fd=open(tname, LFLAGS, LMODES)) > 0);
-
-	snprintf(tname,PATH_MAX,"%s/%s",log_path,stderr_name);
-	assert((stderrlog_fd=open(tname, LFLAGS, LMODES)) > 0);
-
-	snprintf(tname,PATH_MAX,"%s/%s",log_path,child_log_name);
-	assert((child_err_fd=open(tname, LFLAGS, LMODES)) > 0);
-
-	snprintf(tname,PATH_MAX,"%s/%s",log_path,parent_log_name);
-	assert((parent_log_fd=open(tname, LFLAGS, LMODES)) > 0);
+	assert((stdinlog_fd=open(stdin_name, LFLAGS, LMODES)) > 0);
+	assert((stdoutlog_fd=open(stdout_name, LFLAGS, LMODES)) > 0);
+	assert((stderrlog_fd=open(stderr_name, LFLAGS, LMODES)) > 0);
+	assert((child_err_fd=open(child_log_name, LFLAGS, LMODES)) > 0);
+	assert((parent_log_fd=open(parent_log_name, LFLAGS, LMODES)) > 0);
 
 	pipe(pipe_to_child);
 	pipe(pipe_to_parent);
