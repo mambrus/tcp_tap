@@ -14,6 +14,8 @@
 #include <assert.h>
 #include "switchboard.h"
 
+#define DC1 "\377\373\006\375\006\n"
+
 /* The size of each buffer used for tranfer in either direction */
 #ifndef BUFF_SZ
 #define BUFF_SZ 0x400
@@ -28,14 +30,17 @@ char port_number[PATH_MAX]="6666";
 
 struct serv_node {
 	int					fd;		/* File descriptor */
+	int					id;		/* Unique ID of node */
 	struct serv_node*	next;
+	struct serv_node*	prev;   /* Avoid need to search when disconect */
 	pthread_t			thread;
 };
 
 struct switch_struct {
-	int					s;
-	int					n;     /* Number of connections */
-	int					ea;    /* Do echo to all */
+	int					s;	/* Main socket */
+	int					n;  /* Number of connected sessions */
+	int					i;  /* Counter */  
+	int					ea;	/* Do echo to all */
 	struct serv_node	*serv_list;
 };
 
@@ -50,6 +55,12 @@ struct switch_struct ss = {
 	.ea			= 0,
 	.serv_list	= NULL
 };
+
+static void write_toall(const char *buf, int len);
+static void *shuffleThread(void *arg);
+static void *to_swtch_thread(void *arg);
+static void *connect_mngmt_thread(void *arg);
+static void disconnect_servlet(struct serv_node *node);
 
 int init_switchboard(int port, const char *hostname, int echoall){
 	int s;
@@ -67,27 +78,46 @@ static void write_toall(const char *buf, int len) {
 	if (ss.ea) {
 		while (ln) {
 			sn=write(ln->fd,buf,len);
-			assert(len==sn);
+			//assert(len==sn);
 			ln=ln->next;
 		}
 	}
 }
 
+/* Thread handling data from incomming data from it's own client
+ * (i.e. from telnet incomming data
+ */
 static void *shuffleThread(void *inarg){
 	int rn, sn;
-	int fdo,fd = (int)inarg;
+	struct serv_node *node = (struct serv_node *)inarg;
+	int fdo,fd = node->fd;
 	char buf[BUFF_SZ];
 	assert((fdo=open(Q_FROM_SWTCH,O_WRONLY)) >=0);
+	
+	fprintf(stderr, "Session [%d] connected.\n",node->id);
 
-	while(1) {
+	for(rn=1; rn>0; ) {
 		rn=read(fd,buf,BUFF_SZ);
-		write_toall(buf,rn);
-		write(fdo,buf,rn);
-		assert(sn=rn);
+		if (rn>0){
+			write_toall(buf,rn);
+			write(fdo,buf,rn);
+			assert(sn=rn);
+		}
 	}
+	if (rn==0) {
+		fprintf(stderr,"Session [%d] disconnected normally...\n",node->id);
+	} else {
+		perror("Session read error detected: ");
+		fprintf(stderr, "Session [%d] now disconnecting.\n",node->id);
+	}
+	close(fdo); // We'll not send data to this queue/named paipe any more
+	disconnect_servlet(node);
 }
 
-void *to_swtch_thread(void *arg) {
+/* Thread handling data FROM this host and TO all connected 
+ * sessions 
+ */ 
+static void *to_swtch_thread(void *arg) {
 	char buf[BUFF_SZ];
 	int rn,fd;
 
@@ -100,17 +130,46 @@ void *to_swtch_thread(void *arg) {
 	return NULL;
 }
 
-void * switchboard_start_mngmt(void *S){
-	int s = (int)S;
+/* Close a connection and unlink it from the list */
+
+/* FIXME >>> Possible race condition here <<< FIXME */
+static void disconnect_servlet(struct serv_node *node){
+	if (ss.n==1){
+		assert((node->prev==NULL) && (node->next==NULL));
+	}
+	if (node->prev==NULL && node->next==NULL){
+		assert(ss.n==1);
+		ss.serv_list=NULL;
+	} else {
+		if (node->prev){
+			node->prev->next=node->next;
+		}
+		if (node->next){
+			node->next->prev=node->prev;
+		}
+	}
+	free(node);
+	ss.n--;
+}
+
+/* Thread waits for new connections. When detected, the connection
+ * is inserted in the switchboard list.
+ */
+static void *connect_mngmt_thread(void *arg){
+	int s = (int)arg;
 	int fd;
-	struct serv_node *tn,**lnp,*lp;
+	struct serv_node *tn,**lnp,*lp=NULL;
 
 
 	while(1) {
 		assert((fd=open_server(s)) >= 0);
 		tn=malloc(sizeof(struct serv_node));
+		ss.i++;
+		tn->id=ss.i;
 		tn->fd=fd;
 		tn->next=NULL;
+		tn->prev=NULL;
+		lp=NULL;
 
 		lnp=&ss.serv_list;
 		while(*lnp){
@@ -120,9 +179,10 @@ void * switchboard_start_mngmt(void *S){
 		}
 
 		*lnp=tn;
+		(*lnp)->prev=lp;
 
 		ss.n++;
-		assert (pthread_create(&tn->thread,  NULL, shuffleThread,  (void*)fd) == 0);
+		assert (pthread_create(&tn->thread,  NULL, shuffleThread,  (void*)tn) == 0);
 		//sleep(10);
 	}
 
@@ -142,7 +202,7 @@ int switchboard_init(int port, const char *host, int echo){
 	//ss.s=s;
 
 	assert (pthread_create(&threads.to_swtch,  NULL, to_swtch_thread,  NULL) == 0);
-	assert (pthread_create(&threads.mngmt,  NULL, switchboard_start_mngmt, (void*)s ) == 0);
+	assert (pthread_create(&threads.mngmt,  NULL, connect_mngmt_thread, (void*)s ) == 0);
 	return s;
 }
 
