@@ -55,7 +55,9 @@ int init_server(int port, const char *hostname){
 
 
 	for (n=0; n<MAX_RETRY; n++) {
-		//s=socket(AF_INET, SOCK_STREAM,0);
+		int optval = 1;
+		setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof optval);
+
 		rc=bind(s, (struct sockaddr *)&lsin, sizeof(lsin) );
 		if (rc<0){
 			perror("bind: ");
