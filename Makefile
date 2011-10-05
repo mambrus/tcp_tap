@@ -21,7 +21,7 @@ tcp_tap2: Makefile main.c
 
 tcp_tap: Makefile main.c tcp_tap.h server.c server.h switchboard.c switchboard.h sig_mngr.h sig_mngr.c
 	@rm -f tcp_tap
-	( gcc -otcp_tap -O0 -g3 main.c switchboard.c server.c sig_mngr.c -lpthread 2>&1 ) | grcat conf.gcc
+	gcc -otcp_tap -O0 -g3 main.c switchboard.c server.c sig_mngr.c -lpthread 2>&1
 
 switchboard: Makefile switchboard.c  switchboard.h server.c server.h
 	@rm -f switchboard
