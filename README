@@ -1,0 +1,62 @@
+Introduction
+============
+
+tcp_tap was developed to aid graphical gdb front-ends like kdbg that lack  command line interaction for fine-tuning control of a session with just that, a console. It will work with any stdio based interactive program however, not just gdb.
+
+The rest of this document focuses on  the purpose of using it for gdb however.
+
+Build and install
+=================
+To build and install, just run:
+
+make
+sudo make install
+
+No configure needed (it's a simple program).
+
+Usage
+=====
+* Use the wrapper script gdb.tap.sh in place of the gdb command in the settings of your front-end. Or make a link to that script, place it in your ~/bin and  make sure ~/bin comes first in your $PATH.
+
+* Edit and configure gdb.tap.sh with the true back-end gdb that you will
+use. I.e. See TCP_TAP_EXEC in the script, adjust to your liking, but remeber: it has to be a full path.
+
+* Note that since the wrapper needs to be transparent to who-ever uses it, it can't accept settings via cmd-line flags. All adjustments and settings *must* be handled via environment variables. That's why the wrapper script is needed at all. You can write a wrapper script yourself, wrapping your favorite interactive program, use gdb.tap.sh as template and look into it and adjust any other there to your preference. Note that for each program you wrap, you should choose a different TCP_TAP_EXEC and a different port.
+
+Some rambling about why this project exists at all:
+===================================================
+A very good graphical front-end for gdb is kdbg. It's simple and it's fast (and is therefore the authors favorite). BUT: it lacks for example KDevelops ability to provide you with a command-line window where you can enter fine-tuning for a session, or for using gdb's new Python extension abilities and user provided special commands.
+
+The basic concept is to wrap gdb with another program wich also acts as a "tap". The wrapper pipes everything between the gdb front-end and back-end, but it also listens to a socket. If somebody opens that port (using for example telnet), the wrapper will allow gdb commands on the side (i.e. in parallell with the graphical front-end) to be sent to the back-end. 
+
+This would normally be very simple to do with Expect (and has been done for other fron-ends like KDevelop4 and Eclipse), but for some reason either Expect can't handle streams in non-interactive mode and slightly modifies the stream and/or kdbg is very picky about the exact format.
+
+Anyway, with tcp_tap instead of a corresponding Expect wrapper, you'll also as a special bonus get:
+
+* A much faster "tap".
+
+* See all commands sent from the front-end (useful for set-up debugging)
+
+* All replies from the back-end will be sent to both front-end and
+socket users.
+
+* It allows multi session debugging. I.e. your college could participate debugging the same session as you. Good for helping each other with particular sessions, even if both use command-line GDB as front-ends.
+
+- Drawback - socket users will not be able to use GDB terminal helpers (i.e. tab key and up/down arrows will not work). This can be handled by writing a simple little program replacing telnet however.
+
+
+Note
+====
+Note that a "tap" works excellent not only for native gdb, but also for using with cross-tools. It's especially useful when gdb is hooked to a jTag based gdbserver and when you need to enter control commands which the gdbserver listens at (read about the monitor command for gdb).
+
+Future work
+============
+* Parts of this README will be replicated into the Wiki, only build and basic usage information will be kept.
+
+* A small program replacing telnet for better user-interaction instead of telnet.
+
+* A small Qt based application intended as a template for extending a gdb front-end.
+
+
+
+
