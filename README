@@ -3,7 +3,7 @@ Introduction
 
 tcp_tap was developed to aid graphical gdb front-ends like kdbg that lack  command line interaction for fine-tuning control of a session with just that, a console. It will work with any stdio based interactive program however, not just gdb.
 
-The rest of this document focuses on  the purpose of using it for gdb however.
+The rest of this document focuses on gdb.
 
 Build and install
 =================
@@ -21,7 +21,7 @@ Usage
 * Edit and configure gdb.tap.sh with the true back-end gdb that you will
 use. I.e. See TCP_TAP_EXEC in the script, adjust to your liking, but remeber: it has to be a full path.
 
-* Note that since the wrapper needs to be transparent to who-ever uses it, it can't accept settings via cmd-line flags. All adjustments and settings *must* be handled via environment variables. That's why the wrapper script is needed at all. You can write a wrapper script yourself, wrapping your favorite interactive program, use gdb.tap.sh as template and look into it and adjust any other there to your preference. Note that for each program you wrap, you should choose a different TCP_TAP_EXEC and a different port.
+* Note that since the wrapper needs to be transparent to who-ever uses it, it can't accept settings via cmd-line flags. All adjustments and settings *must* be handled via environment variables. That's why the wrapper script is needed at all. You can write a wrapper script yourself, wrapping your favorite interactive program, use gdb.tap.sh as template and look into it and adjust any other there to your preference. Note that for each program you wrap, you should choose a different executable (modify TCP_TAP_EXEC) and a different port (modify TCP_TAP_PORT).
 
 Some rambling about why this project exists at all:
 ===================================================
