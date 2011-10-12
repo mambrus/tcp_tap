@@ -143,8 +143,13 @@ static void *to_swtch_thread(void *arg) {
 	assert((fd=open(Q_TO_SWTCH,O_RDONLY)) >=0);
 
 	while (1) {
+		char buf2[BUFF_SZ];
 		rn=read(fd,buf,BUFF_SZ);
-		write_toall(buf,rn);
+		memset(buf2,0,BUFF_SZ);
+		memcpy(buf2,buf,strnlen("[New Thread",BUFF_SZ));
+		if (strncmp("[New Thread", buf2, strnlen("[New Thread",BUFF_SZ))){
+			write_toall(buf,rn);
+		}
 	}
 	return NULL;
 }
