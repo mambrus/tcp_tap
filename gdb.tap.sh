@@ -25,7 +25,7 @@ function tap() {
 if [ "$TAP_SH" == $( basename $0 ) ]; then
 	#Not sourced, do something with this.
 
-	export TCP_TAP_EXEC="$(which arm-eabi-gdb)"
+	export TCP_TAP_EXEC="$(which gdb)"
 	export TCP_TAP_PORT="8088"
 	export TCP_TAP_LOG_STDIN="/dev/null"
 	export TCP_TAP_LOG_STDOUT="/dev/null"
