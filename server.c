@@ -59,9 +59,8 @@ int init_server(int port, const char *hostname){
 	struct sockaddr_in lsin;
 	int rc;
 
-//int init_server(int port, const char *hostname){
 	if (!hostname)
-		assert(gethostname(name, sizeof(name) > 0));
+		assert(gethostname(name, PATH_MAX) == 0);
 	else
 		strncpy(name,hostname,PATH_MAX);
 
