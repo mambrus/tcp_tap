@@ -1,0 +1,7 @@
+#Source this to build for local-host using shared libraries
+export SAMPLER_ENV_SET='y'
+export LIB_DYNAMIC='y'
+export LD_LIBRARY_PATH=${HOME}/lib
+export KDBG_SESSION="-r localhost:5039"
+export KDBG_BINARY="mysyms/system/bin/sampler"
+export GDB="gdb_arm"
