@@ -35,7 +35,7 @@
 
 #define DC1 "\377\373\006\375\006\n"
 
-/* The size of each buffer used for tranfer in either direction */
+/* The size of each buffer used for transfer in either direction */
 #ifndef BUFF_SZ
 #define BUFF_SZ 0x400
 #endif
@@ -103,8 +103,8 @@ static void write_toall(const char *buf, int len) {
 	}
 }
 
-/* Thread handling data from incomming data from it's own client
- * (i.e. from telnet incomming data
+/* Thread handling data from incoming data from it's own client
+ * (i.e. from telnet incoming data
  */
 static void *shuffleThread(void *inarg){
 	int rn, sn;

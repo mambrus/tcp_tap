@@ -32,10 +32,10 @@
 #undef  NDEBUG
 #include <assert.h>
 
-/* The maximum numbers of arguments in chaild we handle*/
+/* The maximum numbers of arguments in child we handle*/
 #define MAX_ARGS 50
 
-/* The size of each buffer used for tranfer in either direction */
+/* The size of each buffer used for transfer in either direction */
 #ifndef BUFF_SZ
 #define BUFF_SZ 0x400
 #endif
@@ -47,9 +47,14 @@
 /* modes for all the logs */
 #define LMODES 0777
 
-/* Environment overloadable variables */
+/* Environment overloadable variables. Note: NEVER change these in code
+ * unless bug is found as they are considered trusted and safe, and as they
+ * will allow tcp_tap to start without any wrapping scripts (important when
+ * debugging and testing). Always use the corresponding environment variable
+ * */
 
-/* stdin,stdout,stderr for the native process */
+/* stdin,stdout,stderr for the managed sub-process. Used for debugging. Can
+ * safely be rerouted to /dev/null */
 char stdin_name[PATH_MAX]="/tmp/tcp_tap_stdin";
 char stdout_name[PATH_MAX]="/tmp/tcp_tap_stdout";
 char stderr_name[PATH_MAX]="/tmp/tcp_tap_stderr";
@@ -59,10 +64,17 @@ char parent_log_name[PATH_MAX]="/tmp/tcp_tap_parent.log";
 char child_log_name[PATH_MAX]="/tmp/tcp_tap_child.log";	//stderr for the child
 
 /* Name of the main process to run */
-char execute_bin[PATH_MAX]="/skiff/bin/arm-hixs-elf-gdb";
+char execute_bin[PATH_MAX]="/bin/sh";
 
 /* Port number */
 char port[PATH_MAX]="6969";
+
+/* listen at NIC bound to this name (human readable name or
+ * IP-address). Aditionaly two special names:
+ * @HOSTNAME@: Look up the primary interface bound to this name
+ * @ANY@: Allow connection to any of the servers IF
+ * */
+char nic_name[PATH_MAX]="127.0.0.1";
 
 #define SETFROMENV( envvar, locvar, buf_max)				\
 {															\
@@ -179,6 +191,7 @@ int main(int argc, char **argv) {
 
 	SETFROMENV( TCP_TAP_EXEC,		execute_bin,		PATH_MAX);
 	SETFROMENV( TCP_TAP_PORT,		port,				PATH_MAX);
+	SETFROMENV( TCP_TAP_NICNAME,	nic_name,			PATH_MAX);
 	SETFROMENV( TCP_TAP_LOG_STDIN,	stdin_name,			PATH_MAX);
 	SETFROMENV( TCP_TAP_LOG_STDOUT,	stdout_name,		PATH_MAX);
 	SETFROMENV( TCP_TAP_LOG_STDERR,	stderr_name,		PATH_MAX);
@@ -271,7 +284,7 @@ int main(int argc, char **argv) {
 
 	assert (pthread_create(&pt_to_child,  NULL, to_child,  &link_to_child) == 0);
 	assert (pthread_create(&pt_to_parent, NULL, to_parent, &link_to_parent) == 0);
-	s=switchboard_init(atoi(port),"localhost",1);
+	s=switchboard_init(atoi(port),nic_name,1);
 	assert (pthread_create(&pt_from_tcp, NULL, from_tcp, &link_to_child) == 0);
 
 	do {
@@ -284,7 +297,7 @@ int main(int argc, char **argv) {
 
 	sprintf(buf_to_parent,"tcp_tap parent exiting. Thanks for the fish...\n");
 	write(parent_log_fd, buf_to_parent, strnlen(buf_to_parent,BUFF_SZ) );
-	
+
 	pthread_cancel(pt_from_tcp);
 	switchboard_die(s);
 	pthread_cancel(pt_to_parent);

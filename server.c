@@ -59,7 +59,11 @@ int init_server(int port, const char *hostname){
 	struct sockaddr_in lsin;
 	int rc;
 
-	if (!hostname)
+	if (
+		!hostname ||
+		!strncmp(hostname,"@HOSTNAME@",PATH_MAX) ||
+		!strncmp(hostname,"@ANY@",PATH_MAX)
+	)
 		assert(gethostname(name, PATH_MAX) == 0);
 	else
 		strncpy(name,hostname,PATH_MAX);
@@ -69,8 +73,11 @@ int init_server(int port, const char *hostname){
 	assert( (s=socket(AF_INET, SOCK_STREAM,0)) >= 0 );
 	lsin.sin_family = AF_INET;
 	lsin.sin_port=htons(port);
+
 	memcpy(&lsin.sin_addr,hp->h_addr,hp->h_length);
 
+	if (!strncmp(hostname,"@ANY@",PATH_MAX))
+		lsin.sin_addr.s_addr = INADDR_ANY;
 
 	for (n=0; n<MAX_RETRY; n++) {
 		int optval = 1;

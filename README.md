@@ -1,5 +1,5 @@
-Introduction
-============
+Chapter : INTRODUCTION
+======================
 
 tcp_tap was developed to aid graphical GDB front-ends like kdbg that lack
 command line interaction for fine-tuning control of a session with just
