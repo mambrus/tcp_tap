@@ -98,7 +98,7 @@ int init_server(int port, const char *hostname){
 /* Waits for connection, then returns a fd that can be used for r/w */
 int open_server(int s) {
 	struct sockaddr_in rsin;
-	int fromlen;
+	socklen_t fromlen;
 	int rc,n,nmax;
 
 	for (n=0; n<MAX_RETRY; n++) {

@@ -22,7 +22,7 @@
 
 #include <unistd.h>
 
-int sig_mngr_init(pid_t child_pid, int log_fd);
+int sig_mngr_init(pid_t child_pid);
 
 
 #endif

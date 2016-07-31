@@ -28,6 +28,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include "switchboard.h"
+#include "sig_mngr.h"
 
 #undef  NDEBUG
 #include <assert.h>
@@ -189,6 +190,10 @@ int main(int argc, char **argv) {
 
 	assert(argc<MAX_ARGS);
 
+	/* We're passing sockes as arguments to threads as pass by value. Make
+	 * sure they fit */
+	assert(sizeof(void*) >= sizeof(int));
+
 	SETFROMENV( TCP_TAP_EXEC,		execute_bin,		PATH_MAX);
 	SETFROMENV( TCP_TAP_PORT,		port,				PATH_MAX);
 	SETFROMENV( TCP_TAP_NICNAME,	nic_name,			PATH_MAX);
@@ -258,7 +263,7 @@ int main(int argc, char **argv) {
 
 	/* Parent executes this */
 
-	sig_mngr_init(childpid, buf_to_parent);
+	sig_mngr_init(childpid);
 
 	k=sprintf(buf_to_parent,"Parent handles execution of:\n");
 	k=write(parent_log_fd, buf_to_parent, strnlen(buf_to_parent,BUFF_SZ));

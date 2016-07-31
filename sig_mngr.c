@@ -39,19 +39,6 @@
  */
 
 static pid_t	_pid_child = -1;
-static int		_log_fd = -1;
-
-#define __DEF_FUN(X)											\
-	void mngSig_##X( int sig ) {							\
-		char buf[BUFF_SZ];									\
-															\
-		signal( X, SIG_IGN);								\
-		sprintf(buf,"Forwarding signal [" #X "]\n");		\
-		write(_log_fd,buf,strnlen(buf,BUFF_SZ));			\
-		kill(_pid_child,sig);								\
-		signal( X, mngSig_##X );							\
-	}
-
 #define DEF_FUN(X)											\
 	void mngSig_##X( int sig ) {							\
 		signal( X, SIG_IGN);								\
@@ -60,44 +47,44 @@ static int		_log_fd = -1;
 		signal( X, mngSig_##X );							\
 	}
 
-DEF_FUN(SIGHUP);
-DEF_FUN(SIGINT);
-DEF_FUN(SIGQUIT);
-DEF_FUN(SIGILL);
-DEF_FUN(SIGTRAP);
-DEF_FUN(SIGABRT);
-DEF_FUN(SIGIOT);
-DEF_FUN(SIGBUS);
-DEF_FUN(SIGFPE);
-DEF_FUN(SIGKILL);
-DEF_FUN(SIGUSR1);
-DEF_FUN(SIGSEGV);
-DEF_FUN(SIGUSR2);
-DEF_FUN(SIGPIPE);
-DEF_FUN(SIGALRM);
-DEF_FUN(SIGTERM);
-DEF_FUN(SIGSTKFLT);
-DEF_FUN(SIGCHLD);
-DEF_FUN(SIGCONT);
-DEF_FUN(SIGSTOP);
-DEF_FUN(SIGTSTP);
-DEF_FUN(SIGTTIN);
-DEF_FUN(SIGTTOU);
-DEF_FUN(SIGURG);
-DEF_FUN(SIGXCPU);
-DEF_FUN(SIGXFSZ);
-DEF_FUN(SIGVTALRM);
-DEF_FUN(SIGPROF);
-DEF_FUN(SIGWINCH);
-DEF_FUN(SIGIO);
-DEF_FUN(SIGPOLL);
-DEF_FUN(SIGPWR);
-DEF_FUN(SIGSYS);
-DEF_FUN(SIGUNUSED);
-DEF_FUN(SIGRTMIN);
-DEF_FUN(SIGRTMAX);
-//DEF_FUN(SIGSWI);
-DEF_FUN(SIGSTKSZ);
+DEF_FUN(SIGHUP)
+DEF_FUN(SIGINT)
+DEF_FUN(SIGQUIT)
+DEF_FUN(SIGILL)
+DEF_FUN(SIGTRAP)
+DEF_FUN(SIGABRT)
+DEF_FUN(SIGIOT)
+DEF_FUN(SIGBUS)
+DEF_FUN(SIGFPE)
+DEF_FUN(SIGKILL)
+DEF_FUN(SIGUSR1)
+DEF_FUN(SIGSEGV)
+DEF_FUN(SIGUSR2)
+DEF_FUN(SIGPIPE)
+DEF_FUN(SIGALRM)
+DEF_FUN(SIGTERM)
+DEF_FUN(SIGSTKFLT)
+DEF_FUN(SIGCHLD)
+DEF_FUN(SIGCONT)
+DEF_FUN(SIGSTOP)
+DEF_FUN(SIGTSTP)
+DEF_FUN(SIGTTIN)
+DEF_FUN(SIGTTOU)
+DEF_FUN(SIGURG)
+DEF_FUN(SIGXCPU)
+DEF_FUN(SIGXFSZ)
+DEF_FUN(SIGVTALRM)
+DEF_FUN(SIGPROF)
+DEF_FUN(SIGWINCH)
+DEF_FUN(SIGIO)
+DEF_FUN(SIGPOLL)
+DEF_FUN(SIGPWR)
+DEF_FUN(SIGSYS)
+DEF_FUN(SIGUNUSED)
+DEF_FUN(SIGRTMIN)
+DEF_FUN(SIGRTMAX)
+//DEF_FUN(SIGSWI)
+DEF_FUN(SIGSTKSZ)
 
 /* Install sighandler conditioned by environment variable
  * (will be conditional, for now: unconditional)
@@ -108,9 +95,8 @@ DEF_FUN(SIGSTKSZ);
 }
 
 
-int sig_mngr_init(pid_t pid_child, int log_fd) {
+int sig_mngr_init(pid_t pid_child) {
 	_pid_child = pid_child;
-	_log_fd = log_fd;
 
     COND_SIGHNDLR_INSTALL(SIGHUP);
     COND_SIGHNDLR_INSTALL(SIGINT);

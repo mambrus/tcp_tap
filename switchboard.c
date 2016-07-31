@@ -26,12 +26,14 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <netdb.h>
 #include <stdlib.h>
 
 #undef  NDEBUG
 #include <assert.h>
 #include "switchboard.h"
+#include "server.h"
 
 #define DC1 "\377\373\006\375\006\n"
 
@@ -175,9 +177,9 @@ static void disconnect_servlet(struct serv_node *node){
  * is inserted in the switchboard list.
  */
 static void *connect_mngmt_thread(void *arg){
-	int s = (int)arg;
 	int fd;
 	struct serv_node *tn,**lnp,*lp=NULL;
+	int s=(long)arg;
 
 
 	while(1) {
@@ -221,7 +223,7 @@ int switchboard_init(int port, const char *host, int echo){
 	//ss.s=s;
 
 	assert (pthread_create(&threads.to_swtch,  NULL, to_swtch_thread,  NULL) == 0);
-	assert (pthread_create(&threads.mngmt,  NULL, connect_mngmt_thread, (void*)s ) == 0);
+	assert (pthread_create(&threads.mngmt,  NULL, connect_mngmt_thread, (void*)((intptr_t)s) ) == 0);
 	return s;
 }
 
