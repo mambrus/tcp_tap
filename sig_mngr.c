@@ -25,15 +25,9 @@
 
 #undef  NDEBUG
 #include <assert.h>
-
 #include "sig_mngr.h"
 
-/* The size of each buffer used for tranfer in either direction */
-#ifndef BUFF_SZ
-#define BUFF_SZ 0x400
-#endif
-
-/* Install signal-handler for every imaginable signal. If tcp_tap recieves any,
+/* Install signal-handler for every imaginable signal. If tcp_tap receives any,
  * its default behaviour is to forward it to the child, unless corresponding
  * environment variable says differently.
  */
