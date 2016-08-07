@@ -247,7 +247,7 @@ int main(int argc, char **argv) {
 		dup(pipe_to_parent[1]);
 
 		close(2);
-		dup(child_err_fd);
+		dup(pipe_to_parent[1]);
 
 		close(pipe_to_child[0]);
 		close(pipe_to_child[1]);
