@@ -24,5 +24,4 @@
 
 int sig_mngr_init(pid_t child_pid);
 
-
 #endif
