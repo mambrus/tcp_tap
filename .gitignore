@@ -8,3 +8,8 @@ tags
 *.so
 *.swp
 *.*~
+c-tags
+cscope.out
+
+#Personalized config files
+.vim.custom
