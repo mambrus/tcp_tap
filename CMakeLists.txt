@@ -14,7 +14,6 @@ include_directories("${CMAKE_CURRENT_BINARY_DIR}/include")
 # System libraries deduction (begin)
 
 CHECK_LIBRARY_EXISTS(rt clock_gettime "" HAVE_LIB_RT)
-CHECK_LIBRARY_EXISTS(rt mq_open "" HAVE_LIB_MQUEUE)
 CHECK_LIBRARY_EXISTS(pthread pthread_create "" HAVE_LIB_PTHREAD)
 
 if (HAVE_LIB_RT)
@@ -92,17 +91,17 @@ set(CMAKE_C_FLAGS_RELEASE "${CMAKE_EXTRA_C_FLAGS} -no-integrated-cpp -Wno-unused
 ##-------------------------------------------------------------------------------
 ## Target system dependent
 ##-------------------------------------------------------------------------------
-if (NOT USE_LIB_MQUEUE)
-	include_directories ("${PROJECT_SOURCE_DIR}/lib/log/include")
-	add_subdirectory (lib/log)
-	set (EXTRA_LIBS ${EXTRA_LIBS} liblog)
-endif (NOT USE_LIB_MQUEUE)
-
-if (NOT HAVE_LIB_MQUEUE)
-	include_directories ("${PROJECT_SOURCE_DIR}/lib/mqueue/include")
-	add_subdirectory (lib/mqueue)
-	set (EXTRA_LIBS ${EXTRA_LIBS} libmqueue)
-endif (NOT HAVE_LIB_MQUEUE)
+#if (NOT USE_LIB_MQUEUE)
+#	include_directories ("${PROJECT_SOURCE_DIR}/lib/log/include")
+#	add_subdirectory (lib/log)
+#	set (EXTRA_LIBS ${EXTRA_LIBS} liblog)
+#endif (NOT USE_LIB_MQUEUE)
+#
+#if (NOT HAVE_LIB_MQUEUE)
+#	include_directories ("${PROJECT_SOURCE_DIR}/lib/mqueue/include")
+#	add_subdirectory (lib/mqueue)
+#	set (EXTRA_LIBS ${EXTRA_LIBS} libmqueue)
+#endif (NOT HAVE_LIB_MQUEUE)
 
 ################################################################################
 # Project

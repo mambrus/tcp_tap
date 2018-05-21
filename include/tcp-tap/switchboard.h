@@ -20,8 +20,6 @@
 #ifndef switchboard_h
 #define switchboard_h
 
-#include <mqueue.h>
-
 /* Returns server socket, close this to close all servlets */
 int switchboard_init(int port, const char *host, int echo);
 void switchboard_die(int s);
