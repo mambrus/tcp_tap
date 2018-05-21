@@ -23,33 +23,19 @@
 #include <fcntl.h>
 #include <string.h>
 #include <pthread.h>
-#include <stdlib.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
 #include <stdlib.h>
 #include <netinet/in.h>
+#include <tcp-tap/server.h>
 
 #undef  NDEBUG
 #include <assert.h>
 
-#include <tcp-tap/server.h>
-
 #define BACKLOG 5
 #define MAX_RETRY 3
 #define RETRY_US  20000000
-
-#ifdef TEST
-/* Environment overloadable variables */
-
-/* Port number */
-char port_number[PATH_MAX] = "6666";
-#endif                          //TEST
-
-/* The size of each buffer used for tranfer in either direction */
-#ifndef BUFF_SZ
-#define BUFF_SZ 0x400
-#endif
 
 /* Returns a valid socket fd on connection */
 int init_server(int port, const char *hostname)
@@ -116,38 +102,3 @@ int open_server(int s)
     }
     return rc;
 }
-
-#ifdef TEST
-
-void *myThread(void *inarg)
-{
-    int rn, sn;
-    int fd = (int)inarg;
-    char buf[BUFF_SZ];
-    while (1) {
-        rn = read(fd, buf, BUFF_SZ);
-        sn = write(fd, buf, rn);
-        assert(rn == sn);
-    }
-}
-
-/* Just echo back everything */
-int main(int argc, char **argv)
-{
-    int fd, s;
-    int port;
-    pthread_t t_thread;
-
-    port = atoi(port_number);
-    char buf[BUFF_SZ];
-
-    s = init_server(port, "localhost");
-    while (1) {
-        fd = open_server(s);
-        assert(pthread_create(&t_thread, NULL, myThread, (void *)fd) == 0);
-        //sleep(10);
-    }
-
-    return 0;
-}
-#endif                          //TEST

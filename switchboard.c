@@ -23,7 +23,6 @@
 #include <fcntl.h>
 #include <string.h>
 #include <pthread.h>
-#include <stdlib.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -36,19 +35,10 @@
 #include <tcp-tap/server.h>
 #include "tcp-tap_config.h"
 
-#define DC1 "\377\373\006\375\006\n"
-
 /* The size of each buffer used for transfer in either direction */
 #ifndef BUFF_SZ
 #define BUFF_SZ 0x400
 #endif
-
-#ifdef TEST2
-/* Environment overloadable variables */
-
-/* Port number */
-char port_number[PATH_MAX] = "6666";
-#endif                          //TEST
 
 struct serv_node {
     int fd;                     /* File descriptor */
@@ -255,85 +245,3 @@ void switchboard_die(int s)
 
     assert(close(s) == 0);
 }
-
-#ifdef TEST_SWITCH
-
-void *from_stdin(void *arg)
-{
-    int rn, sn;
-    int wfd;
-    char buf[BUFF_SZ];
-
-    usleep(100000);
-    assert((wfd = open(Q_TO_SWTCH, O_WRONLY)) >= 0);
-
-    while (1) {
-        rn = read(1, buf, BUFF_SZ);
-        sn = write(wfd, buf, rn);
-        assert(rn == sn);
-    }
-}
-
-void *to_stdout(void *arg)
-{
-    int rn, sn;
-    int rfd;
-    char buf[BUFF_SZ];
-
-    usleep(100000);
-    assert((rfd = open(Q_FROM_SWTCH, O_RDONLY)) >= 0);
-
-    while (1) {
-        rn = read(rfd, buf, BUFF_SZ);
-        sn = write(2, buf, rn);
-        assert(rn == sn);
-    }
-}
-
-int main(int argc, char **argv)
-{
-    pthread_t thread1, thread2;
-
-    assert(pthread_create(&thread1, NULL, from_stdin, NULL) == 0);
-    assert(pthread_create(&thread2, NULL, to_stdout, NULL) == 0);
-
-    switchboard_start(6666, "localhost", 1);
-
-    return 0;
-}
-#endif                          //TEST_SWITCH
-
-#ifdef TEST2
-
-void *myThread(void *inarg)
-{
-    int rn, sn;
-    int fd = (int)inarg;
-    char buf[BUFF_SZ];
-    while (1) {
-        rn = read(fd, buf, BUFF_SZ);
-        sn = write(fd, buf, rn);
-        assert(rn == sn);
-    }
-}
-
-/* Just echo back everything */
-int main(int argc, char **argv)
-{
-    int fd, s;
-    int port;
-    pthread_t t_thread;
-
-    port = atoi(port_number);
-    char buf[BUFF_SZ];
-
-    s = init_server(port, "localhost");
-    while (1) {
-        fd = open_server(s);
-        assert(pthread_create(&t_thread, NULL, myThread, (void *)fd) == 0);
-        //sleep(10);
-    }
-
-    return 0;
-}
-#endif                          //TEST2

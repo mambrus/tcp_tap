@@ -14,3 +14,7 @@
 [submodule "lib/log"]
 	path = lib/log
 	url = https://github.com/mambrus/liblog.git
+[submodule "examples/cmake"]
+	path = examples/cmake
+	url = https://github.com/helsinova/xcmake.git
+	branch = master

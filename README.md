@@ -35,15 +35,30 @@ programs (normally GUI front-ends) that have it's back-end hard-coded.
 
 ## Build
 
-* Native builds:
+### Native builds:
+
+`tcp-tap` binary and libraries (installed)
 
 ```bash
 cmake .
 ccmake .
 make
+sudo make install
+make clean
 ```
 
-* [Cross builds](https://github.com/helsinova/xcmake/blob/master/x-build.md)
+### Examples:
+
+Examples are built separately. Use above installed library.
+
+```bash
+cd examples/
+cmake .
+ccmake .
+make
+```
+
+## [Cross builds](https://github.com/helsinova/xcmake/blob/master/x-build.md)
 
 ## How to use
 

@@ -33,13 +33,13 @@
  */
 
 static pid_t _pid_child = -1;
-#define DEF_FUN(X)											\
-	void mngSig_##X( int sig ) {							\
-		signal( X, SIG_IGN);								\
-		fprintf(stderr,"Forwarding signal [" #X "]\n");		\
-		kill(_pid_child,sig);								\
-		signal( X, mngSig_##X );							\
-	}
+#define DEF_FUN(X)                                          \
+    void mngSig_##X( int sig ) {                            \
+        signal( X, SIG_IGN);                                \
+        fprintf(stderr,"Forwarding signal [" #X "]\n");     \
+        kill(_pid_child,sig);                               \
+        signal( X, mngSig_##X );                            \
+    }
 
 DEF_FUN(SIGHUP)
     DEF_FUN(SIGINT)
@@ -83,9 +83,9 @@ DEF_FUN(SIGHUP)
 /* Install sighandler conditioned by environment variable
  * (will be conditional, for now: unconditional)
  */
-#define COND_SIGHNDLR_INSTALL(X)							\
-{															\
-	signal( X , mngSig_##X );								\
+#define COND_SIGHNDLR_INSTALL(X)                            \
+{                                                           \
+    signal( X , mngSig_##X );                               \
 }
 int sig_mngr_init(pid_t pid_child)
 {
