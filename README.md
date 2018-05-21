@@ -33,6 +33,18 @@ By *not* accepting any arguments of it's own and send everything to the
 *wrapped* command, tcp-tap is able to add it's extended features also to
 programs (normally GUI front-ends) that have it's back-end hard-coded.
 
+## Build
+
+* Native builds:
+
+```bash
+cmake .
+ccmake .
+make
+```
+
+* [Cross builds](https://github.com/helsinova/xcmake/blob/master/x-build.md)
+
 ## How to use
 
 * Set a few environment variables

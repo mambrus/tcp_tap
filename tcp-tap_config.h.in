@@ -1,0 +1,14 @@
+/* TCP-TA§P config file */
+#ifndef tcp-tap_config_h
+#define tcp-tap_config_h
+
+#define PROJ_NAME "@CMAKE_PROJECT_NAME@"
+#define VERSION_MAJOR @TCP-TAP_VERSION_MAJOR@
+#define VERSION_MINOR @TCP-TAP_VERSION_MINOR@
+#define VERSION_PATCH @TCP-TAP_VERSION_PATCH@
+#define VERSION "@TCP-TAP_VERSION_MAJOR@.@TCP-TAP_VERSION_MINOR@.@TCP-TAP_VERSION_PATCH@"
+
+/* Defaults to corresponding environment variables */
+#define TCP_TAP_EXEC @TCP_TAP_EXEC@
+
+#endif //tcp-tap_config_h
