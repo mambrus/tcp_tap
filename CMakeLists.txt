@@ -134,7 +134,7 @@ add_library(sotcptap SHARED ${LIB_TCP_TAP_SOURCE})
 target_link_libraries (sotcptap ${EXTRA_LIBS})
 set_target_properties(
   sotcptap PROPERTIES PUBLIC_HEADER 
-  "include/server.h;include/switchboard.h")
+  "include/tcp-tap/server.h;include/tcp-tap/switchboard.h")
 
 # This level - program
 set (EXTRA_LIBS ${EXTRA_LIBS} atcptap)
