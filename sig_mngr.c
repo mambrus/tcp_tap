@@ -129,6 +129,8 @@ int sig_mngr_init(pid_t pid_child)
     COND_SIGHNDLR_INSTALL(SIGRTMAX);
     //COND_SIGHNDLR_INSTALL(SIGSWI);
     COND_SIGHNDLR_INSTALL(SIGSTKSZ);
+
+    return 0;
 }
 
 /*

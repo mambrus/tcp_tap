@@ -99,7 +99,7 @@ int open_server(int s)
 {
     struct sockaddr_in rsin;
     socklen_t fromlen;
-    int rc, n, nmax;
+    int rc, n;
 
     for (n = 0; n < MAX_RETRY; n++) {
         assert(listen(s, BACKLOG) >= 0);

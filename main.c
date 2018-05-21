@@ -151,7 +151,6 @@ void *from_tcp(void *arg)
 {
     int i, j, rfd;
     struct data_link *lp = (struct data_link *)arg;
-    char tbuf[BUFF_SZ];
 
     assert((rfd = open(Q_FROM_SWTCH, O_RDONLY)) >= 0);
 
@@ -180,7 +179,6 @@ int main(int argc, char **argv)
     int pipe_to_parent[2];
     int parent_log_fd, child_err_fd;
     int stdinlog_fd, stdoutlog_fd, stderrlog_fd;
-    char tname[PATH_MAX];
     char *exec_args[MAX_ARGS];
     char buf_to_child[BUFF_SZ];
     char buf_to_parent[BUFF_SZ];
@@ -302,7 +300,7 @@ int main(int argc, char **argv)
     do {
         //wpid=waitpid( /*childpid*/ /*0*/ -1, &status, WUNTRACED );
         wpid = waitpid(childpid, &status, WUNTRACED);
-        //assert (wpid >=0 );
+        assert (wpid >=0 );
     } while (!WIFEXITED(status) && !WIFSIGNALED(status));
 
     //while ( wait((int*)0) != childpid );

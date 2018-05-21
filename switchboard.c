@@ -101,7 +101,7 @@ static void write_toall(const char *buf, int len)
     if (ss.ea) {
         while (ln) {
             sn = write(ln->fd, buf, len);
-            //assert(len==sn);
+            assert(len == sn);
             ln = ln->next;
         }
     }
@@ -136,10 +136,12 @@ static void *shuffleThread(void *inarg)
     }
     close(fdo);                 // We'll not send data to this queue/named paipe any more
     disconnect_servlet(node);
+
+    return NULL;
 }
 
-/* Thread handling data FROM this host and TO all connected 
- * sessions 
+/* Thread handling data FROM this host and TO all connected
+ * sessions
  */
 static void *to_swtch_thread(void *arg)
 {
