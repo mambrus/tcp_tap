@@ -32,7 +32,7 @@
  * environment variable says differently.
  */
 
-static pid_t	_pid_child = -1;
+static pid_t _pid_child = -1;
 #define DEF_FUN(X)											\
 	void mngSig_##X( int sig ) {							\
 		signal( X, SIG_IGN);								\
@@ -42,43 +42,43 @@ static pid_t	_pid_child = -1;
 	}
 
 DEF_FUN(SIGHUP)
-DEF_FUN(SIGINT)
-DEF_FUN(SIGQUIT)
-DEF_FUN(SIGILL)
-DEF_FUN(SIGTRAP)
-DEF_FUN(SIGABRT)
-DEF_FUN(SIGIOT)
-DEF_FUN(SIGBUS)
-DEF_FUN(SIGFPE)
-DEF_FUN(SIGKILL)
-DEF_FUN(SIGUSR1)
-DEF_FUN(SIGSEGV)
-DEF_FUN(SIGUSR2)
-DEF_FUN(SIGPIPE)
-DEF_FUN(SIGALRM)
-DEF_FUN(SIGTERM)
-DEF_FUN(SIGSTKFLT)
-DEF_FUN(SIGCHLD)
-DEF_FUN(SIGCONT)
-DEF_FUN(SIGSTOP)
-DEF_FUN(SIGTSTP)
-DEF_FUN(SIGTTIN)
-DEF_FUN(SIGTTOU)
-DEF_FUN(SIGURG)
-DEF_FUN(SIGXCPU)
-DEF_FUN(SIGXFSZ)
-DEF_FUN(SIGVTALRM)
-DEF_FUN(SIGPROF)
-DEF_FUN(SIGWINCH)
-DEF_FUN(SIGIO)
-DEF_FUN(SIGPOLL)
-DEF_FUN(SIGPWR)
-DEF_FUN(SIGSYS)
-DEF_FUN(SIGUNUSED)
-DEF_FUN(SIGRTMIN)
-DEF_FUN(SIGRTMAX)
+    DEF_FUN(SIGINT)
+    DEF_FUN(SIGQUIT)
+    DEF_FUN(SIGILL)
+    DEF_FUN(SIGTRAP)
+    DEF_FUN(SIGABRT)
+    DEF_FUN(SIGIOT)
+    DEF_FUN(SIGBUS)
+    DEF_FUN(SIGFPE)
+    DEF_FUN(SIGKILL)
+    DEF_FUN(SIGUSR1)
+    DEF_FUN(SIGSEGV)
+    DEF_FUN(SIGUSR2)
+    DEF_FUN(SIGPIPE)
+    DEF_FUN(SIGALRM)
+    DEF_FUN(SIGTERM)
+    DEF_FUN(SIGSTKFLT)
+    DEF_FUN(SIGCHLD)
+    DEF_FUN(SIGCONT)
+    DEF_FUN(SIGSTOP)
+    DEF_FUN(SIGTSTP)
+    DEF_FUN(SIGTTIN)
+    DEF_FUN(SIGTTOU)
+    DEF_FUN(SIGURG)
+    DEF_FUN(SIGXCPU)
+    DEF_FUN(SIGXFSZ)
+    DEF_FUN(SIGVTALRM)
+    DEF_FUN(SIGPROF)
+    DEF_FUN(SIGWINCH)
+    DEF_FUN(SIGIO)
+    DEF_FUN(SIGPOLL)
+    DEF_FUN(SIGPWR)
+    DEF_FUN(SIGSYS)
+    DEF_FUN(SIGUNUSED)
+    DEF_FUN(SIGRTMIN)
+    DEF_FUN(SIGRTMAX)
 //DEF_FUN(SIGSWI)
-DEF_FUN(SIGSTKSZ)
+    DEF_FUN(SIGSTKSZ)
 
 /* Install sighandler conditioned by environment variable
  * (will be conditional, for now: unconditional)
@@ -87,10 +87,9 @@ DEF_FUN(SIGSTKSZ)
 {															\
 	signal( X , mngSig_##X );								\
 }
-
-
-int sig_mngr_init(pid_t pid_child) {
-	_pid_child = pid_child;
+int sig_mngr_init(pid_t pid_child)
+{
+    _pid_child = pid_child;
 
     COND_SIGHNDLR_INSTALL(SIGHUP);
     COND_SIGHNDLR_INSTALL(SIGINT);
