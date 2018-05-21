@@ -28,6 +28,7 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <stdlib.h>
+#include <netinet/in.h>
 
 #undef  NDEBUG
 #include <assert.h>

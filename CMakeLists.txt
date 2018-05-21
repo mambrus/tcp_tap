@@ -1,13 +1,43 @@
-cmake_minimum_required (VERSION 2.6)
-project (tcp_tap C)
+cmake_minimum_required (VERSION 3.0.2)
+project (tcp-tap C)
 
 include(CheckLibraryExists)
 include(CheckTypeSize)
 include(CheckCSourceCompiles)
 include(CheckIncludeFiles)
+include(CheckFunctionExists)
+include(CheckSymbolExists)
 
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
 include_directories("${CMAKE_CURRENT_BINARY_DIR}/include")
+
+# System libraries deduction (begin)
+
+CHECK_LIBRARY_EXISTS(rt clock_gettime "" HAVE_LIB_RT)
+CHECK_LIBRARY_EXISTS(rt mq_open "" HAVE_LIB_MQUEUE)
+CHECK_LIBRARY_EXISTS(pthread pthread_create "" HAVE_LIB_PTHREAD)
+
+if (HAVE_LIB_RT)
+    set(EXTRA_LIBS ${EXTRA_LIBS} rt)
+endif (HAVE_LIB_RT)
+
+if (HAVE_LIB_PTHREAD)
+    set(EXTRA_LIBS ${EXTRA_LIBS} pthread)
+endif (HAVE_LIB_PTHREAD)
+
+message (STATUS "Checking for (p)Threads")
+find_package(Threads)
+
+# Functions that might be missing and need worka-arounding
+# Both of these are needed for either of the test to work (strange...)
+set(CMAKE_REQUIRED_INCLUDES pthread.h)
+set(CMAKE_REQUIRED_LIBRARIES pthread)
+
+CHECK_FUNCTION_EXISTS("pthread_cancel"  HAVE_PTHREAD_CANCEL_F)
+CHECK_SYMBOL_EXISTS("pthread_cancel" "pthread.h" HAVE_PTHREAD_CANCEL_S)
+
+CHECK_FUNCTION_EXISTS("pthread_create"  HAVE_PTHREAD_CREATE_F)
+CHECK_SYMBOL_EXISTS("pthread_create" "pthread.h" HAVE_PTHREAD_CREATE_S)
 
 ################################################################################
 # Configuration options
@@ -60,13 +90,19 @@ set(CMAKE_C_FLAGS_RELEASE "${CMAKE_EXTRA_C_FLAGS} -no-integrated-cpp -Wno-unused
 ################################################################################
 
 ##-------------------------------------------------------------------------------
-## some-lib - target system dependent
+## Target system dependent
 ##-------------------------------------------------------------------------------
-#if (NOT SOMEVAR)
-#	include_directories ("${PROJECT_SOURCE_DIR}/some-lib")
-#	add_subdirectory (some-lib)
-#	set (EXTRA_LIBS ${EXTRA_LIBS} some-lib)
-#endif (NOT EHWE)
+if (NOT USE_LIB_MQUEUE)
+	include_directories ("${PROJECT_SOURCE_DIR}/lib/log/include")
+	add_subdirectory (lib/log)
+	set (EXTRA_LIBS ${EXTRA_LIBS} liblog)
+endif (NOT USE_LIB_MQUEUE)
+
+if (NOT HAVE_LIB_MQUEUE)
+	include_directories ("${PROJECT_SOURCE_DIR}/lib/mqueue/include")
+	add_subdirectory (lib/mqueue)
+	set (EXTRA_LIBS ${EXTRA_LIBS} libmqueue)
+endif (NOT HAVE_LIB_MQUEUE)
 
 ################################################################################
 # Project
@@ -87,33 +123,36 @@ configure_file (
 # so that we will find Config.h
 include_directories("${PROJECT_BINARY_DIR}")
 
-# System libraries deduction (begin)
-CHECK_LIBRARY_EXISTS(rt clock_gettime "" HAVE_LIB_RT)
-CHECK_LIBRARY_EXISTS(pthread pthread_create "" HAVE_LIB_PTHREAD)
-
-if (HAVE_LIB_RT)
-    set(EXTRA_LIBS ${EXTRA_LIBS} rt)
-endif (HAVE_LIB_RT)
-if (HAVE_LIB_PTHREAD)
-    set(EXTRA_LIBS ${EXTRA_LIBS} pthread)
-endif (HAVE_LIB_PTHREAD)
-# System libraries deduction (end)
-
 # This level as Library
 set(LIB_TCP_TAP_SOURCE
 	server.c  switchboard.c
 )
-add_library(tcptap ${LIB_TCP_TAP_SOURCE})
-target_link_libraries (tcptap ${EXTRA_LIBS})
+add_library(atcptap STATIC ${LIB_TCP_TAP_SOURCE})
+target_link_libraries (atcptap ${EXTRA_LIBS})
+
+add_library(sotcptap SHARED ${LIB_TCP_TAP_SOURCE})
+target_link_libraries (sotcptap ${EXTRA_LIBS})
+set_target_properties(
+  sotcptap PROPERTIES PUBLIC_HEADER 
+  "include/server.h;include/switchboard.h")
 
 # This level - program
-set (EXTRA_LIBS ${EXTRA_LIBS} tcptap)
+set (EXTRA_LIBS ${EXTRA_LIBS} atcptap)
 
 set(TCP-TAP_SOURCE
 	main.c  sig_mngr.c
 )
 add_executable(tcp-tap ${TCP-TAP_SOURCE})
-target_link_libraries (tcp-tap tcptap ${EXTRA_LIBS})
+target_link_libraries (tcp-tap atcptap ${EXTRA_LIBS})
 
 # Installation
-install(PROGRAMS ${PROJECT_BINARY_DIR}/src DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+# Shells (ignore for now)
+#install(PROGRAMS ${PROJECT_BINARY_DIR}/gdb.tap.sh DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+
+# Targets:
+install(TARGETS tcp-tap atcptap sotcptap
+        RUNTIME       DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
+        LIBRARY       DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+        ARCHIVE       DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+        PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_PREFIX}/include/${PROJECT_NAME})
+

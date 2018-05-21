@@ -8,3 +8,9 @@
 	path = cmake
 	url = https://github.com/helsinova/xcmake.git
 	branch = master
+[submodule "lib/mqueue"]
+	path = lib/mqueue
+	url = https://github.com/mambrus/clib-mqueue.git
+[submodule "lib/log"]
+	path = lib/log
+	url = https://github.com/mambrus/liblog.git

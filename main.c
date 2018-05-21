@@ -29,6 +29,7 @@
 #include <sys/wait.h>
 #include "switchboard.h"
 #include "sig_mngr.h"
+#include "tcp-tap_config.h"
 
 #undef  NDEBUG
 #include <assert.h>
@@ -77,15 +78,15 @@ char port[PATH_MAX] = "6969";
  * */
 char nic_name[PATH_MAX] = "127.0.0.1";
 
-#define SETFROMENV( envvar, locvar, buf_max)				\
-{															\
-	char *ts;												\
-	if ((ts=getenv(#envvar)) != NULL ) {					\
-		int l;												\
-		memset(locvar,0,buf_max);							\
-		l=strnlen(ts,buf_max);								\
-		memcpy(locvar,ts,l<buf_max?l:buf_max);				\
-	}														\
+#define SETFROMENV( envvar, locvar, buf_max)                \
+{                                                           \
+    char *ts;                                               \
+    if ((ts=getenv(#envvar)) != NULL ) {                    \
+        int l;                                              \
+        memset(locvar,0,buf_max);                           \
+        l=strnlen(ts,buf_max);                              \
+        memcpy(locvar,ts,l<buf_max?l:buf_max);              \
+    }                                                       \
 }
 
 /* Transfer types */
@@ -300,7 +301,7 @@ int main(int argc, char **argv)
     do {
         //wpid=waitpid( /*childpid*/ /*0*/ -1, &status, WUNTRACED );
         wpid = waitpid(childpid, &status, WUNTRACED);
-        assert (wpid >=0 );
+        assert(wpid >= 0);
     } while (!WIFEXITED(status) && !WIFSIGNALED(status));
 
     //while ( wait((int*)0) != childpid );

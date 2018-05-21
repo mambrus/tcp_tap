@@ -1,6 +1,6 @@
 /* TCP-TA§P config file */
-#ifndef tcp-tap_config_h
-#define tcp-tap_config_h
+#ifndef tcp_tap_config_h
+#define tcp_tap_config_h
 
 #define PROJ_NAME "@CMAKE_PROJECT_NAME@"
 #define VERSION_MAJOR @TCP-TAP_VERSION_MAJOR@
@@ -11,4 +11,29 @@
 /* Defaults to corresponding environment variables */
 #define TCP_TAP_EXEC @TCP_TAP_EXEC@
 
-#endif //tcp-tap_config_h
+/* Target system supports libraries */
+#cmakedefine HAVE_LIB_RT
+#cmakedefine HAVE_LIB_MQUEUE
+#cmakedefine HAVE_LIB_PTHREAD
+
+/* Target system supports functions */
+#cmakedefine HAVE_PTHREAD_CANCEL_F
+#cmakedefine HAVE_PTHREAD_CREATE_F
+
+/* Target system supports symbols */
+#cmakedefine HAVE_PTHREAD_CANCEL_S
+#cmakedefine HAVE_PTHREAD_CREATE_S
+
+#if !defined(HAVE_PTHREAD_CANCEL_S) && !defined(HAVE_PTHREAD_CANCEL_S)
+/* Work-around for (especially) Android targets */
+
+static int _simulated_pthread_cancel(pthread_t thread)
+{
+    return pthread_kill(thread, SIGUSR1);
+}
+
+#define pthread_cancel _simulated_pthread_cancel
+
+#endif
+
+#endif                          //tcp_tap_config_h

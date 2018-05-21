@@ -34,6 +34,7 @@
 #include <assert.h>
 #include "switchboard.h"
 #include "server.h"
+#include "tcp-tap_config.h"
 
 #define DC1 "\377\373\006\375\006\n"
 
