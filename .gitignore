@@ -1,4 +1,4 @@
-tcp_tap
+tcp-tap
 files.s3
 tags
 *.o
@@ -8,3 +8,8 @@ tags
 *.so
 *.swp
 *.*~
+*_config.h
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake

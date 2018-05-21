@@ -19,7 +19,7 @@ TAP_SH="tap.sh"
 #
 
 function tap() {
-	exec tcp_tap "$@"
+	exec tcp-tap "$@"
 }
 
 if [ "$TAP_SH" == $( basename $0 ) ]; then
