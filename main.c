@@ -27,7 +27,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include "switchboard.h"
+#include <tcp-tap/switchboard.h>
 #include "sig_mngr.h"
 #include "tcp-tap_config.h"
 

@@ -33,7 +33,7 @@
 #undef  NDEBUG
 #include <assert.h>
 
-#include "server.h"
+#include <tcp-tap/server.h>
 
 #define BACKLOG 5
 #define MAX_RETRY 3
