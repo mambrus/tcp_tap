@@ -18,6 +18,9 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include <pthread.h>
+#include <limits.h>
+#include <unistd.h>
+#include <stdio.h>
 #include <tcp-tap/server.h>
 
 #undef  NDEBUG
@@ -27,8 +30,8 @@
 #define BUFF_SZ 0x400
 #endif
 
-/* Port number */
-char port_number[PATH_MAX] = "6666";
+#define PORT_NUMBER 6666
+#define HOST_IP "localhost"
 
 /* Just echo back everything */
 void *myThread(void *inarg)
@@ -48,13 +51,12 @@ void *myThread(void *inarg)
 int main(int argc, char **argv)
 {
     int fd, s;
-    int port;
     pthread_t t_thread;
 
-    port = atoi(port_number);
-    char buf[BUFF_SZ];
+    s = init_server(PORT_NUMBER, "localhost");
 
-    s = init_server(port, "localhost");
+    printf("Ready for multi-session echoing service: telnet %s %d\n", HOST_IP,
+           PORT_NUMBER);
     while (1) {
         fd = open_server(s);
         assert(pthread_create(&t_thread, NULL, myThread, (void *)fd) == 0);

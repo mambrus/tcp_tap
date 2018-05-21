@@ -88,13 +88,13 @@ include_directories("${PROJECT_BINARY_DIR}")
 
 # Example targets
 add_executable(server_threaded_multisession server_threaded_multisession.c)
-target_link_libraries (server_threaded_multisession atcptap)
+target_link_libraries (server_threaded_multisession atcptap ${EXTRA_LIBS})
 
 add_executable(switchboard_simple switchboard_simple.c)
-target_link_libraries (switchboard_simple.c atcptap)
+target_link_libraries (switchboard_simple atcptap ${EXTRA_LIBS})
 
-# Targets:
-install(TARGETS tcp-tap atcptap sotcptap
+# Targets installation (provided for reference):
+install(TARGETS switchboard_simple server_threaded_multisession
         RUNTIME       DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
         LIBRARY       DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
         ARCHIVE       DESTINATION ${CMAKE_INSTALL_PREFIX}/lib

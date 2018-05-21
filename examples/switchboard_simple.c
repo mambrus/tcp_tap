@@ -17,10 +17,14 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+#include <stdio.h>
 #include <pthread.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <tcp-tap/switchboard.h>
 #include <tcp-tap/server.h>
-#include "tcp-tap_config.h"
+#include "config.h"
 
 #undef  NDEBUG
 #include <assert.h>
@@ -29,6 +33,9 @@
 #ifndef BUFF_SZ
 #define BUFF_SZ 0x400
 #endif
+
+#define PORT_NUMBER 1974
+#define HOST_IP "localhost"
 
 void *from_stdin(void *arg)
 {
@@ -69,7 +76,11 @@ int main(int argc, char **argv)
     assert(pthread_create(&thread1, NULL, from_stdin, NULL) == 0);
     assert(pthread_create(&thread2, NULL, to_stdout, NULL) == 0);
 
-    switchboard_start(6666, "localhost", 1);
+    printf("Chat with me via stdin/stdout (I will echo) \n");
+    printf("Others may join the group via: telnet %s %d\n", HOST_IP,
+           PORT_NUMBER);
+
+    switchboard_init(PORT_NUMBER, HOST_IP, 1);
 
     return 0;
 }
