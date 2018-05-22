@@ -1,6 +1,8 @@
 myrsh
 switchboard_simple
-server_threaded_multisession
+switchboard_threaded
+echo_multi
+echo_simple
 tags
 *.o
 *.d

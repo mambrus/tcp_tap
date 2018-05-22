@@ -87,17 +87,23 @@ configure_file (
 include_directories("${PROJECT_BINARY_DIR}")
 
 # Example targets
-add_executable(server_threaded_multisession server_threaded_multisession.c)
-target_link_libraries (server_threaded_multisession atcptap ${EXTRA_LIBS})
+add_executable(echo_multi echo_multi.c)
+target_link_libraries (echo_multi atcptap ${EXTRA_LIBS})
+
+add_executable(echo_simple echo_simple.c)
+target_link_libraries (echo_simple atcptap ${EXTRA_LIBS})
 
 add_executable(switchboard_simple switchboard_simple.c)
 target_link_libraries (switchboard_simple atcptap ${EXTRA_LIBS})
+
+add_executable(switchboard_threaded switchboard_threaded.c)
+target_link_libraries (switchboard_threaded atcptap ${EXTRA_LIBS})
 
 add_executable(myrsh myrsh.c)
 target_link_libraries (myrsh atcptap ${EXTRA_LIBS})
 
 # Targets installation (provided for reference):
-install(TARGETS switchboard_simple server_threaded_multisession
+install(TARGETS switchboard_simple echo_multi
         RUNTIME       DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
         LIBRARY       DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
         ARCHIVE       DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
