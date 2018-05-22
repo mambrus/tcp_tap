@@ -51,7 +51,7 @@ struct serv_node {
 struct switch_struct {
     int s;                      /* Main socket */
     int n;                      /* Number of connected sessions */
-    int i;                      /* Counter */
+    int i;                      /* Total counter */
     int ea;                     /* Do echo to all */
     struct serv_node *serv_list;
 };
@@ -64,6 +64,7 @@ struct threads_t {
 struct switch_struct ss = {
     .s = 0,
     .n = 0,
+    .i = 0,
     .ea = 0,
     .serv_list = NULL
 };
@@ -74,7 +75,7 @@ static void *to_swtch_thread(void *arg);
 static void *connect_mngmt_thread(void *arg);
 static void disconnect_servlet(struct serv_node *node);
 
-int init_switchboard(int port, const char *hostname, int echoall)
+static int init_switchboard(int port, const char *hostname, int echoall)
 {
     int s;
 
