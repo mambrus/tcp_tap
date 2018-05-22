@@ -93,6 +93,9 @@ target_link_libraries (echo_multi atcptap ${EXTRA_LIBS})
 add_executable(echo_simple echo_simple.c)
 target_link_libraries (echo_simple atcptap ${EXTRA_LIBS})
 
+add_executable(client client.c)
+target_link_libraries (client atcptap ${EXTRA_LIBS})
+
 add_executable(switchboard_simple switchboard_simple.c)
 target_link_libraries (switchboard_simple atcptap ${EXTRA_LIBS})
 

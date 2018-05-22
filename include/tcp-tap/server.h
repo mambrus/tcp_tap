@@ -22,4 +22,5 @@
 /* Returns a valid socket fd on connection */
 int init_server(int port, const char *hostname);
 int open_server(int s);
+int open_client(int port, const char *hostname);
 #endif

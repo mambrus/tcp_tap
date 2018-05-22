@@ -93,12 +93,45 @@ int open_server(int s)
 
         rc = accept(s, (struct sockaddr *)&rsin, &fromlen);
         if (rc < 0) {
-            /* print error reason to stderr, but dong exit */
+            /* print error reason to stderr, but don't exit */
             perror("accept: ");
             fprintf(stderr, "Retry %d of %d\n", n + 1, MAX_RETRY);
             usleep(RETRY_US);
         } else
             break;
+    }
+    return rc;
+}
+
+int open_client(int port, const char *hostname)
+{
+    struct sockaddr_in lsin;
+    socklen_t s;
+    int rc, n;
+    struct hostent *hp;
+    char name[PATH_MAX];
+
+    strncpy(name, hostname, PATH_MAX);
+    assert((hp = gethostbyname(name)) != NULL);
+
+    assert((s = socket(AF_INET, SOCK_STREAM, 0)) >= 0);
+    lsin.sin_family = AF_INET;
+    lsin.sin_port = htons(port);
+
+    memcpy(&lsin.sin_addr, hp->h_addr, hp->h_length);
+
+    for (n = 0; n < MAX_RETRY; n++) {
+
+        rc = connect(s, (struct sockaddr *)&lsin, sizeof(lsin));
+        if (rc < 0) {
+            /* print error reason to stderr, but don't exit */
+            perror("connect: ");
+            fprintf(stderr, "Retry %d of %d\n", n + 1, MAX_RETRY);
+            usleep(RETRY_US);
+        } else {
+            rc = s;
+            break;
+        }
     }
     return rc;
 }
