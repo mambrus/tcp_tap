@@ -1,3 +1,10 @@
+/* Simple chat server
+ * ==================
+ *
+ * Shich-board shuffles all from all - to all
+ *
+ */
+
 #include <stdio.h>
 #include <pthread.h>
 #include <unistd.h>
@@ -20,34 +27,45 @@
 
 void *from_stdin(void *arg)
 {
-    int rn, sn;
+    int rn = BUFF_SZ, sn;
     int wfd;
     char buf[BUFF_SZ];
 
     usleep(100000);
     assert((wfd = open(Q_TO_SWTCH, O_WRONLY)) >= 0);
 
-    while (1) {
+    while (rn > 0) {
         rn = read(1, buf, BUFF_SZ);
         sn = write(wfd, buf, rn);
         assert(rn == sn);
     }
+
+    if (rn < 0)
+        perror("read() failed: ");
+    close(wfd);
+    return NULL;
 }
 
 void *to_stdout(void *arg)
 {
-    int rn, sn;
+    int rn = BUFF_SZ, sn;
     int rfd;
     char buf[BUFF_SZ];
 
     usleep(100000);
     assert((rfd = open(Q_FROM_SWTCH, O_RDONLY)) >= 0);
 
-    while (1) {
+    while (rn > 0) {
         rn = read(rfd, buf, BUFF_SZ);
         sn = write(2, buf, rn);
         assert(rn == sn);
     }
+
+    if (rn < 0)
+        perror("read() failed: ");
+
+    close(rfd);
+    return NULL;
 }
 
 int main(int argc, char **argv)
@@ -62,6 +80,10 @@ int main(int argc, char **argv)
            PORT_NUMBER);
 
     switchboard_init(PORT_NUMBER, HOST_IP, 1);
+
+    while (1) {
+        sleep(1000);
+    }
 
     return 0;
 }
