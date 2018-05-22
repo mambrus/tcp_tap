@@ -93,6 +93,9 @@ target_link_libraries (server_threaded_multisession atcptap ${EXTRA_LIBS})
 add_executable(switchboard_simple switchboard_simple.c)
 target_link_libraries (switchboard_simple atcptap ${EXTRA_LIBS})
 
+add_executable(myrsh myrsh.c)
+target_link_libraries (myrsh atcptap ${EXTRA_LIBS})
+
 # Targets installation (provided for reference):
 install(TARGETS switchboard_simple server_threaded_multisession
         RUNTIME       DESTINATION ${CMAKE_INSTALL_PREFIX}/bin

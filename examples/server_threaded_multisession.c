@@ -33,7 +33,7 @@
 #define PORT_NUMBER 6666
 #define HOST_IP "localhost"
 
-/* Just echo back everything */
+/* Handle session: Just echo back everything */
 void *myThread(void *inarg)
 {
     int rn, sn;
@@ -46,8 +46,8 @@ void *myThread(void *inarg)
     }
 }
 
-/* Wait for connect, then spawn a thread for each connection and then wait
- * for more connections */
+/* Wait for connect, then spawn a thread for each connection who will handle
+ * that particualr session, then go back wait for more connections */
 int main(int argc, char **argv)
 {
     int fd, s;

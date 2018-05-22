@@ -1,0 +1,17 @@
+myrsh
+switchboard_simple
+server_threaded_multisession
+tags
+*.o
+*.d
+*.tmp
+*.a
+*.so
+*.swp
+*.*~
+*config.h
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+install_manifest.txt
