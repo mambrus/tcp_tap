@@ -29,14 +29,28 @@
 /* Handle session: Just echo back everything */
 void *myThread(void *inarg)
 {
-    int rn, sn;
-    int fd = (int)inarg;
+    int rn = BUFF_SZ, sn, tid;
+    int fd = (intptr_t) inarg;
     char buf[BUFF_SZ];
-    while (1) {
+    static int nt = 0;
+
+    nt++;
+    tid = nt;
+
+    printf("Thread [%d] is handling session for fd [%d]\n", tid, fd);
+    while (rn > 0) {
         rn = read(fd, buf, BUFF_SZ);
+        printf(" %d: %d\n", tid, rn);
         sn = write(fd, buf, rn);
         assert(rn == sn);
     }
+    printf("Thread [%d] finished session for fd [%d]\n", tid, fd);
+    if (rn < 0)
+        perror("read() failed: ");
+
+    close(fd);
+
+    return NULL;
 }
 
 int main(int argc, char **argv)
@@ -46,11 +60,13 @@ int main(int argc, char **argv)
 
     s = init_server(PORT_NUMBER, "localhost");
 
-    printf("Ready for multi-session echoing service: telnet %s %d\n", HOST_IP,
-           PORT_NUMBER);
     while (1) {
+        printf("Pid=%d ready for multi-session echoing service: telnet %s %d\n",
+               getpid(), HOST_IP, PORT_NUMBER);
+
         fd = open_server(s);
-        assert(pthread_create(&t_thread, NULL, myThread, (void *)fd) == 0);
+        assert(pthread_create
+               (&t_thread, NULL, myThread, (void *)((intptr_t) fd)) == 0);
     }
 
     return 0;
