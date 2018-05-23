@@ -3,6 +3,9 @@ switchboard_simple
 switchboard_threaded
 echo_multi
 echo_simple
+client
+nc_client
+nc_server
 tags
 *.o
 *.d

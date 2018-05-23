@@ -41,6 +41,10 @@ CHECK_SYMBOL_EXISTS("pthread_create" "pthread.h" HAVE_PTHREAD_CREATE_S)
 ################################################################################
 # Configuration options
 ################################################################################
+#-------------------------------------------------------------------------------
+# Build-system options
+#-------------------------------------------------------------------------------
+option (BUILD_EXAMPLES "Include examples in this build" OFF)
 
 #-------------------------------------------------------------------------------
 # X buildtool options (gcc)
@@ -102,6 +106,13 @@ set(CMAKE_C_FLAGS_RELEASE "${CMAKE_EXTRA_C_FLAGS} -no-integrated-cpp -Wno-unused
 #	add_subdirectory (lib/mqueue)
 #	set (EXTRA_LIBS ${EXTRA_LIBS} libmqueue)
 #endif (NOT HAVE_LIB_MQUEUE)
+
+################################################################################
+# Examples (src binding)
+################################################################################
+if (NOT USE_LIB_MQUEUE)
+	add_subdirectory (examples)
+endif (NOT USE_LIB_MQUEUE)
 
 ################################################################################
 # Project
