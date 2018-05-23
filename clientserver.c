@@ -28,7 +28,7 @@
 #include <netdb.h>
 #include <stdlib.h>
 #include <netinet/in.h>
-#include <tcp-tap/server.h>
+#include <tcp-tap/clientserver.h>
 
 #undef  NDEBUG
 #include <assert.h>

@@ -124,7 +124,7 @@ include_directories("${PROJECT_BINARY_DIR}")
 
 # This level as Library
 set(LIB_TCP_TAP_SOURCE
-	server.c  switchboard.c
+	clientserver.c  switchboard.c
 )
 add_library(atcptap STATIC ${LIB_TCP_TAP_SOURCE})
 target_link_libraries (atcptap ${EXTRA_LIBS})
@@ -133,7 +133,7 @@ add_library(sotcptap SHARED ${LIB_TCP_TAP_SOURCE})
 target_link_libraries (sotcptap ${EXTRA_LIBS})
 set_target_properties(
   sotcptap PROPERTIES PUBLIC_HEADER 
-  "include/tcp-tap/server.h;include/tcp-tap/switchboard.h")
+  "include/tcp-tap/clientserver.h;include/tcp-tap/switchboard.h")
 
 # This level - program
 set (EXTRA_LIBS ${EXTRA_LIBS} atcptap)

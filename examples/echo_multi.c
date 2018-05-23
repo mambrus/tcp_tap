@@ -14,7 +14,7 @@
 #include <limits.h>
 #include <unistd.h>
 #include <stdio.h>
-#include <tcp-tap/server.h>
+#include <tcp-tap/clientserver.h>
 
 #undef  NDEBUG
 #include <assert.h>

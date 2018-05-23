@@ -16,7 +16,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <tcp-tap/server.h>
+#include <tcp-tap/clientserver.h>
 
 #undef  NDEBUG
 #include <assert.h>

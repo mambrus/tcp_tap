@@ -12,7 +12,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <tcp-tap/switchboard.h>
-#include <tcp-tap/server.h>
+#include <tcp-tap/clientserver.h>
 #include <stdlib.h>
 #include <errno.h>
 

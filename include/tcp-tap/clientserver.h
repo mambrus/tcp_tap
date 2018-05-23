@@ -17,8 +17,8 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef server_h
-#define server_h
+#ifndef clientserver_h
+#define clientserver_h
 /* Returns a valid socket fd on connection */
 int init_server(int port, const char *hostname);
 int open_server(int s);

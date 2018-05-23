@@ -32,7 +32,7 @@
 #undef  NDEBUG
 #include <assert.h>
 #include <tcp-tap/switchboard.h>
-#include <tcp-tap/server.h>
+#include <tcp-tap/clientserver.h>
 #include "tcp-tap_config.h"
 
 /* The size of each buffer used for transfer in either direction */

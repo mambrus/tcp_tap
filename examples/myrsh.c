@@ -18,7 +18,7 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <tcp-tap/server.h>
+#include <tcp-tap/clientserver.h>
 #undef  NDEBUG
 #include <assert.h>
 
