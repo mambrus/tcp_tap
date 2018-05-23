@@ -90,6 +90,8 @@ int open_server(int s)
     socklen_t fromlen;
     int rc, n;
 
+    fromlen = sizeof(struct sockaddr_in);
+
     for (n = 0; n < MAX_RETRY; n++) {
         assert(listen(s, BACKLOG) >= 0);
 
