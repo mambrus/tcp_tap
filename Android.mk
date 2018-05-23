@@ -1,19 +1,18 @@
 LOCAL_PATH:= $(call my-dir)
-
 include $(CLEAR_VARS)
-LOCAL_MODULE := tcp_tap
-LOCAL_MODULE_TAGS := optional
-LOCAL_PRELINK_MODULE := false
-LOCAL_ARM_MODE := arm
-LOCAL_CFLAGS += -fPIC
-LOCAL_CFLAGS += -DNDEBUG
+
+LOCAL_MODULE_TAGS := debug eng
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/include
+LOCAL_SRC_FILES :=  clientserver.c switchboard.c
+LOCAL_MODULE := libatcptap
+include $(BUILD_STATIC_LIBRARY)
+include $(CLEAR_VARS)
 
-LOCAL_SRC_FILES := main.c  server.c  sig_mngr.c  switchboard.c
-
-LOCAL_SHARED_LIBRARIES := 
-
-
-include $(LOCAL_PATH)/common.mk
+LOCAL_MODULE := tcp-tap
+LOCAL_MODULE_TAGS := debug eng
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/include
+LOCAL_SRC_FILES := main.c
+#LOCAL_SHARED_LIBRARIES :=
+LOCAL_STATIC_LIBRARIES := libatcptap
 include $(BUILD_EXECUTABLE)
-#$(call import-module,lib_something)
+include $(CLEAR_VARS)

@@ -24,7 +24,12 @@
 int switchboard_init(int port, const char *host, int echo);
 void switchboard_die(int s);
 
-#define Q_TO_SWTCH "/tmp/q_to_swtch"
-#define Q_FROM_SWTCH "/tmp/q_from_swtch"
+#ifdef ANDROID
+#  define Q_TO_SWTCH "/data/local/tmp/q_to_swtch"
+#  define Q_FROM_SWTCH "/data/local/tmp/q_from_swtch"
+#else
+#  define Q_TO_SWTCH "/tmp/q_to_swtch"
+#  define Q_FROM_SWTCH "/tmp/q_from_swtch"
+#endif
 
 #endif
