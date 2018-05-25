@@ -19,8 +19,13 @@
  ***************************************************************************/
 #ifndef clientserver_h
 #define clientserver_h
+
+#include <stddef.h>
 int init_server(int port, const char *hostname);
 int open_server(int s);
 int open_client(int port, const char *hostname);
 int named_socket(int isserver, const char *filename);
+ssize_t read_fd(int sock, void *buf, ssize_t bufsize, int *fd);
+ssize_t write_fd(int sock, void *buf, ssize_t buflen, int fd);
+
 #endif
