@@ -20,11 +20,13 @@
 #include <stdio.h>
 #include <limits.h>
 #include <unistd.h>
+#include <stddef.h>
 #include <fcntl.h>
 #include <string.h>
 #include <pthread.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/un.h>
 #include <netdb.h>
 #include <stdlib.h>
 #include <netinet/in.h>
@@ -37,7 +39,8 @@
 #define MAX_RETRY 3
 #define RETRY_US  20000000
 
-/* Returns a valid socket fd on connection */
+/* Returns a valid socket fd that can block at accept(), i.e. wait for
+ * client side connect() */
 int init_server(int port, const char *hostname)
 {
     int s, n;
@@ -73,7 +76,6 @@ int init_server(int port, const char *hostname)
         if (rc < 0) {
             perror("bind: ");
             fprintf(stderr, "Retry: %d of %d\n", n + 1, MAX_RETRY);
-            //close(s);
             usleep(RETRY_US);
         } else
             break;
@@ -136,4 +138,47 @@ int open_client(int port, const char *hostname)
         }
     }
     return rc;
+}
+
+/* Create a DGRAM socket as either client/server in the local domain */
+int named_socket(int isserver, const char *filename)
+{
+    struct sockaddr_un name;
+    int sock;
+    size_t size;
+
+    /* Create the socket. */
+    sock = socket(PF_LOCAL, SOCK_DGRAM, 0);
+    if (sock < 0) {
+        perror("socket: ");
+        exit(EXIT_FAILURE);
+    }
+
+    /* Bind a name to the socket. */
+    name.sun_family = AF_LOCAL;
+    strncpy(name.sun_path, filename, sizeof(name.sun_path));
+    name.sun_path[sizeof(name.sun_path) - 1] = '\0';
+
+    /* The size of the address is
+       the offset of the start of the filename,
+       plus its length (not including the terminating null byte).
+       Alternatively you can just do:
+       size = SUN_LEN (&name);
+     */
+    size = (offsetof(struct sockaddr_un, sun_path)
+            + strlen(name.sun_path));
+
+    if (isserver) {
+        if (bind(sock, (struct sockaddr *)&name, size) < 0) {
+            perror("bind: ");
+            exit(EXIT_FAILURE);
+        }
+    } else {
+        if (connect(sock, (struct sockaddr *)&name, size) < 0) {
+            perror("connect: ");
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    return sock;
 }

@@ -1,6 +1,7 @@
 tcp-tap
-files.s3
 tags
+c-tags
+cscope.out
 *.o
 *.d
 *.tmp

@@ -105,6 +105,15 @@ target_link_libraries (switchboard_threaded atcptap ${EXTRA_LIBS})
 add_executable(myrsh myrsh.c)
 target_link_libraries (myrsh atcptap ${EXTRA_LIBS})
 
+add_executable(local_domain local_domain.c)
+target_link_libraries (local_domain atcptap ${EXTRA_LIBS})
+
+add_executable(local_domain_read local_domain_read.c)
+target_link_libraries (local_domain_read atcptap ${EXTRA_LIBS})
+
+add_executable(local_domain_write local_domain_write.c)
+target_link_libraries (local_domain_write atcptap ${EXTRA_LIBS})
+
 # Targets installation (provided for reference):
 install(TARGETS switchboard_simple echo_multi
         RUNTIME       DESTINATION ${CMAKE_INSTALL_PREFIX}/bin

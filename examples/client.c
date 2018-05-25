@@ -32,7 +32,7 @@
 int main(int argc, char **argv)
 {
     int rn = BUFF_SZ, sn;
-    int fd,s;
+    int fd, s;
     char buf[BUFF_SZ];
 
     s = open_client(PORT_NUMBER, "localhost");
@@ -42,12 +42,12 @@ int main(int argc, char **argv)
                getpid(), HOST_IP, PORT_NUMBER, s);
         while (rn > 0) {
             //rn = read(0, buf, BUFF_SZ);
-			memset(buf,0,BUFF_SZ);
-			scanf("%s",buf);
-			rn=strnlen(buf,BUFF_SZ);
-			fprintf(stderr,"Writing to socket\n");
+            memset(buf, 0, BUFF_SZ);
+            scanf("%s", buf);
+            rn = strnlen(buf, BUFF_SZ);
+            fprintf(stderr, "Writing to socket\n");
             sn = write(s, buf, rn);
-			fprintf(stderr,"Reading fronm socket\n");
+            fprintf(stderr, "Reading fronm socket\n");
             rn = read(s, buf, rn);
             rn = write(1, buf, rn);
             assert(rn == sn);

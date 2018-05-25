@@ -32,7 +32,7 @@
 int main(int argc, char **argv)
 {
     int rn = BUFF_SZ, sn;
-    int fd,s;
+    int fd, s;
     char buf[BUFF_SZ];
 
     s = init_server(PORT_NUMBER, "localhost");

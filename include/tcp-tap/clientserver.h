@@ -19,8 +19,8 @@
  ***************************************************************************/
 #ifndef clientserver_h
 #define clientserver_h
-/* Returns a valid socket fd on connection */
 int init_server(int port, const char *hostname);
 int open_server(int s);
 int open_client(int port, const char *hostname);
+int named_socket(int isserver, const char *filename);
 #endif
