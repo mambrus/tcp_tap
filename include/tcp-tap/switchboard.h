@@ -20,16 +20,26 @@
 #ifndef switchboard_h
 #define switchboard_h
 
-/* Returns server socket, close this to close all servlets */
-int switchboard_init(int port, const char *host, int echo);
+struct switch_fifo {
+    char *in_name;
+    char *out_name;
+};
+
+/* Returns server socket close this to close all servlets
+ *
+ * fifo_prename is an optional identifier string. If NULL, a default will be
+ * used */
+int switchboard_init(int port, const char *host, int echo,
+                     const char *fifo_prename);
 void switchboard_die(int s);
 
+/* Get full path/suffix FIFO-names in use to/from switch-board */
+struct switch_fifo *switchboard_fifo_names();
+
 #ifdef ANDROID
-#  define Q_TO_SWTCH "/data/local/tmp/q_to_swtch"
-#  define Q_FROM_SWTCH "/data/local/tmp/q_from_swtch"
+#  define FIFO_DIR "/data/local/tmp"
 #else
-#  define Q_TO_SWTCH "/tmp/q_to_swtch"
-#  define Q_FROM_SWTCH "/tmp/q_from_swtch"
+#  define FIFO_DIR "/tmp"
 #endif
 
 #endif

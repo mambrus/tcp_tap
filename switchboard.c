@@ -40,11 +40,15 @@
 #define BUFF_SZ 0x400
 #endif
 
+/* FIFO-names (named pipes) in use per process/instance. Main mechanism for
+ * communicating with the switchboard */
+struct switch_fifo switch_fifo;
+
 struct serv_node {
     int fd;                     /* File descriptor */
     int id;                     /* Unique ID of node */
     struct serv_node *next;
-    struct serv_node *prev;     /* Avoid need to search when disconect */
+    struct serv_node *prev;     /* Avoid need to search when disconnect */
     pthread_t thread;
 };
 
@@ -70,8 +74,8 @@ struct switch_struct ss = {
 };
 
 static void write_toall(const char *buf, int len);
-static void *shuffleThread(void *arg);
-static void *to_swtch_thread(void *arg);
+static void *in_session_thread(void *arg);
+static void *handle_in_fifo_thread(void *arg);
 static void *connect_mngmt_thread(void *arg);
 static void disconnect_servlet(struct serv_node *node);
 
@@ -99,16 +103,24 @@ static void write_toall(const char *buf, int len)
     }
 }
 
-/* Thread handling data from incoming data from it's own client
- * (i.e. from telnet incoming data
+/* Provide outside access to the internal fifo-names in use.
  */
-static void *shuffleThread(void *inarg)
+struct switch_fifo *switchboard_fifo_names()
+{
+    return &switch_fifo;
+}
+
+/* Handling incoming data from own session. I.e. one thread per connection
+ * handle it's in-data. Read data is written both to fifo-out (i.e. back to
+ * connecting process) and to all other connected sessions.
+ */
+static void *in_session_thread(void *inarg)
 {
     int rn, sn;
     struct serv_node *node = (struct serv_node *)inarg;
     int fdo, fd = node->fd;
     char buf[BUFF_SZ];
-    assert((fdo = open(Q_FROM_SWTCH, O_WRONLY)) >= 0);
+    assert((fdo = open(switch_fifo.out_name, O_WRONLY)) >= 0);
 
     fprintf(stderr, "Session [%d] connected.\n", node->id);
 
@@ -126,21 +138,21 @@ static void *shuffleThread(void *inarg)
         perror("Session read error detected: ");
         fprintf(stderr, "Session [%d] now disconnecting.\n", node->id);
     }
-    close(fdo);                 // We'll not send data to this queue/named paipe any more
+    close(fdo);                 /* Release resource */
     disconnect_servlet(node);
 
     return NULL;
 }
 
-/* Thread handling data FROM this host and TO all connected
- * sessions
+/* Thread reading data FROM in_fifo and writes TO all connected
+ * socket sessions.
  */
-static void *to_swtch_thread(void *arg)
+static void *handle_in_fifo_thread(void *arg)
 {
     char buf[BUFF_SZ];
     int rn, fd;
 
-    assert((fd = open(Q_TO_SWTCH, O_RDONLY)) >= 0);
+    assert((fd = open(switch_fifo.in_name, O_RDONLY)) >= 0);
 
     while (1) {
         rn = read(fd, buf, BUFF_SZ);
@@ -172,8 +184,9 @@ static void disconnect_servlet(struct serv_node *node)
     ss.n--;
 }
 
-/* Thread waits for new connections. When detected, the connection
- * is inserted in the switchboard list.
+/* Thread waits for new connections. When detected, an in_session thread is
+ * created per each connection and the connection is inserted in the
+ * switchboard list.
  */
 static void *connect_mngmt_thread(void *arg)
 {
@@ -202,27 +215,51 @@ static void *connect_mngmt_thread(void *arg)
         (*lnp)->prev = lp;
 
         ss.n++;
-        assert(pthread_create(&tn->thread, NULL, shuffleThread, (void *)tn) ==
-               0);
+        assert(pthread_create(&tn->thread, NULL, in_session_thread, (void *)tn)
+               == 0);
         //sleep(10);
     }
-
 }
 
-/* Just echo back everything */
-int switchboard_init(int port, const char *host, int echo)
+int switchboard_init(int port, const char *host, int echo, const char *prename)
 {
     int s;
+    char tprename[PATH_MAX];
+    char tin_name[PATH_MAX];
+    char tout_name[PATH_MAX];
+    int slen;
+    int pid = getpid();
 
-    mkfifo(Q_TO_SWTCH, 0777);
-    mkfifo(Q_FROM_SWTCH, 0777);
+    memset(tprename, 0, PATH_MAX);
+    memset(tin_name, 0, PATH_MAX);
+    memset(tout_name, 0, PATH_MAX);
+
+    /* Constructing fifo-names (build-up) */
+    if (prename == NULL) {
+        strncpy(tprename, FIFO_DIR "/fifo_switchboard", PATH_MAX);
+    } else {
+        strncpy(tprename, FIFO_DIR "/", PATH_MAX);
+        slen = strnlen(tprename, PATH_MAX);
+        strncpy(&tprename[slen], prename, PATH_MAX - slen);
+    }
+
+    snprintf(tin_name, PATH_MAX, "%s_%s_%d", tprename, "in", pid);
+    snprintf(tout_name, PATH_MAX, "%s_%s_%d", tprename, "out", pid);
+
+    switch_fifo.in_name = strndup(tin_name, PATH_MAX);
+    switch_fifo.out_name = strndup(tout_name, PATH_MAX);
+
+    unlink(switch_fifo.in_name);
+    unlink(switch_fifo.out_name);
+
+    mkfifo(switch_fifo.in_name, 0777);
+    mkfifo(switch_fifo.out_name, 0777);
 
     s = init_switchboard(port, host, echo);
-    //ss.ea = echo;
-    //s=init_server(6666,"localhost");
-    //ss.s=s;
 
-    assert(pthread_create(&threads.to_swtch, NULL, to_swtch_thread, NULL) == 0);
+    assert(pthread_create(&threads.to_swtch, NULL, handle_in_fifo_thread, NULL)
+           == 0);
+
     assert(pthread_create
            (&threads.mngmt, NULL, connect_mngmt_thread,
             (void *)((intptr_t) s)) == 0);
@@ -245,4 +282,8 @@ void switchboard_die(int s)
     }
 
     assert(close(s) == 0);
+    unlink(switch_fifo.in_name);
+    unlink(switch_fifo.out_name);
+    free(switch_fifo.in_name);
+    free(switch_fifo.out_name);
 }

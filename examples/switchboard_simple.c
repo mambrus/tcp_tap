@@ -33,7 +33,7 @@ int main(int argc, char **argv)
     printf("Others may join the group via: telnet %s %d\n", HOST_IP,
            PORT_NUMBER);
 
-    switchboard_init(PORT_NUMBER, HOST_IP, 1);
+    switchboard_init(PORT_NUMBER, HOST_IP, 1, NULL);
 
     while (1) {
         sleep(1000);
