@@ -31,6 +31,7 @@
 #include <stdlib.h>
 #include <netinet/in.h>
 #include <tcp-tap/clientserver.h>
+#include "local.h"
 
 #undef  NDEBUG
 #include <assert.h>
@@ -74,7 +75,7 @@ int init_server(int port, const char *hostname)
 
         rc = bind(s, (struct sockaddr *)&lsin, sizeof(lsin));
         if (rc < 0) {
-            perror("bind: ");
+            perror("bind: "__FILE__ " +" STR(__LINE__) " ");
             fprintf(stderr, "Retry: %d of %d\n", n + 1, MAX_RETRY);
             usleep(RETRY_US);
         } else
@@ -98,7 +99,7 @@ int open_server(int s)
         rc = accept(s, (struct sockaddr *)&rsin, &fromlen);
         if (rc < 0) {
             /* print error reason to stderr, but don't exit */
-            perror("accept: ");
+            perror("accept: "__FILE__ " +" STR(__LINE__) " ");
             fprintf(stderr, "Retry %d of %d\n", n + 1, MAX_RETRY);
             usleep(RETRY_US);
         } else
@@ -129,7 +130,7 @@ int open_client(int port, const char *hostname)
         rc = connect(s, (struct sockaddr *)&lsin, sizeof(lsin));
         if (rc < 0) {
             /* print error reason to stderr, but don't exit */
-            perror("connect: ");
+            perror("connect: "__FILE__ " +" STR(__LINE__) " ");
             fprintf(stderr, "Retry %d of %d\n", n + 1, MAX_RETRY);
             usleep(RETRY_US);
         } else {
@@ -150,7 +151,7 @@ int named_socket(int isserver, const char *filename)
     /* Create the socket. */
     sock = socket(PF_LOCAL, SOCK_DGRAM, 0);
     if (sock < 0) {
-        perror("socket: ");
+        perror("socket: "__FILE__ " +" STR(__LINE__) " ");
         exit(EXIT_FAILURE);
     }
 
@@ -170,12 +171,12 @@ int named_socket(int isserver, const char *filename)
 
     if (isserver) {
         if (bind(sock, (struct sockaddr *)&name, size) < 0) {
-            perror("bind: ");
+            perror("bind: "__FILE__ " +" STR(__LINE__) " ");
             exit(EXIT_FAILURE);
         }
     } else {
         if (connect(sock, (struct sockaddr *)&name, size) < 0) {
-            perror("connect: ");
+            perror("connect: "__FILE__ " +" STR(__LINE__) " ");
             exit(EXIT_FAILURE);
         }
     }

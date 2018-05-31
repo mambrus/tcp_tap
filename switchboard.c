@@ -34,6 +34,7 @@
 #include <tcp-tap/switchboard.h>
 #include <tcp-tap/clientserver.h>
 #include "tcp-tap_config.h"
+#include "local.h"
 
 /* The size of each buffer used for transfer in either direction */
 #ifndef BUFF_SZ
@@ -123,7 +124,7 @@ static void *shuffleThread(void *inarg)
     if (rn == 0) {
         fprintf(stderr, "Session [%d] disconnected normally...\n", node->id);
     } else {
-        perror("Session read error detected: ");
+        perror("Session read error detected: "__FILE__ " +" STR(__LINE__) " ");
         fprintf(stderr, "Session [%d] now disconnecting.\n", node->id);
     }
     close(fdo);                 // We'll not send data to this queue/named paipe any more
