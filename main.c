@@ -30,6 +30,7 @@
 #include <tcp-tap/switchboard.h>
 #include "sig_mngr.h"
 #include "tcp-tap_config.h"
+#include "local.h"
 
 #undef  NDEBUG
 #include <assert.h>
@@ -113,7 +114,7 @@ void *to_child(void *arg)
     while (1) {
         i = read(lp->read_from, lp->buffer, BUFF_SZ);
         if (i < 0) {
-            perror("Failed reading from pipe");
+            perror("Failed reading from pipe: "__FILE__ " +" STR(__LINE__) " ");
             exit(-1);
         }
         j = write(lp->write_to, lp->buffer, i);
@@ -137,7 +138,7 @@ void *to_parent(void *arg)
     while (1) {
         i = read(lp->read_from, lp->buffer, BUFF_SZ);
         if (i < 0) {
-            perror("Failed reading from pipe");
+            perror("Failed reading from pipe: "__FILE__ " +" STR(__LINE__) " ");
             exit(-1);
         }
         j = write(lp->write_to, lp->buffer, i);
@@ -166,7 +167,7 @@ void *from_tcp(void *arg)
            lp->buffer[i-1]='\n';
          */
         if (i < 0) {
-            perror("Failed reading from TCP");
+            perror("Failed reading from TCP: "__FILE__ " +" STR(__LINE__) " ");
             exit(-1);
         }
         j = write(lp->write_to, lp->buffer, i);
@@ -265,7 +266,7 @@ int main(int argc, char **argv)
         execv(execute_bin, exec_args);
 
         /* Should never execute */
-        perror("exec error");
+        perror("exec error: "__FILE__ " +" STR(__LINE__) " ");
         exit(-1);
     }
 
