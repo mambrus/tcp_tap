@@ -72,6 +72,9 @@ char execute_bin[PATH_MAX] = "/bin/sh";
 /* Port number */
 char port[PATH_MAX] = "6969";
 
+/* FIFO(s) pre-name */
+char fifo_prename[PATH_MAX] = FIFO_DIR "/tcptap-swtchbrd_";
+
 /* listen at NIC bound to this name (human readable name or
  * IP-address). Aditionaly two special names:
  * @HOSTNAME@: Look up the primary interface bound to this name
@@ -106,7 +109,7 @@ void *to_child(void *arg)
     int i, j, wfd;
     struct data_link *lp = (struct data_link *)arg;
 
-    assert((wfd = open(Q_TO_SWTCH, O_WRONLY)) >= 0);
+    assert((wfd = open(switchboard_fifo_names()->in_name, O_WRONLY)) >= 0);
 
     while (1) {
         i = read(lp->read_from, lp->buffer, BUFF_SZ);
@@ -130,7 +133,7 @@ void *to_parent(void *arg)
     int i, j, wfd;
     struct data_link *lp = (struct data_link *)arg;
 
-    assert((wfd = open(Q_TO_SWTCH, O_WRONLY)) >= 0);
+    assert((wfd = open(switchboard_fifo_names()->in_name, O_WRONLY)) >= 0);
 
     while (1) {
         i = read(lp->read_from, lp->buffer, BUFF_SZ);
@@ -154,7 +157,7 @@ void *from_tcp(void *arg)
     int i, j, rfd;
     struct data_link *lp = (struct data_link *)arg;
 
-    assert((rfd = open(Q_FROM_SWTCH, O_RDONLY)) >= 0);
+    assert((rfd = open(switchboard_fifo_names()->out_name, O_RDONLY)) >= 0);
 
     while (1) {
         i = read(rfd, lp->buffer, BUFF_SZ);
@@ -206,6 +209,7 @@ int main(int argc, char **argv)
     SETFROMENV(TCP_TAP_LOG_STDERR, stderr_name, PATH_MAX);
     SETFROMENV(TCP_TAP_LOG_PARENT, parent_log_name, PATH_MAX);
     SETFROMENV(TCP_TAP_LOG_CHILD, child_log_name, PATH_MAX);
+    SETFROMENV(TCP_TAP_FIFO_PRE_NAME, fifo_prename, PATH_MAX);
 
     assert((stdinlog_fd = open(stdin_name, LFLAGS, LMODES)) > 0);
     assert((stdoutlog_fd = open(stdout_name, LFLAGS, LMODES)) > 0);
@@ -293,10 +297,10 @@ int main(int argc, char **argv)
     link_to_parent.log_to = stdoutlog_fd;
     link_to_parent.buffer = buf_to_parent;
 
+    s = switchboard_init(atoi(port), nic_name, 1, fifo_prename);
     assert(pthread_create(&pt_to_child, NULL, to_child, &link_to_child) == 0);
     assert(pthread_create(&pt_to_parent, NULL, to_parent, &link_to_parent) ==
            0);
-    s = switchboard_init(atoi(port), nic_name, 1);
     assert(pthread_create(&pt_from_tcp, NULL, from_tcp, &link_to_child) == 0);
 
     do {
