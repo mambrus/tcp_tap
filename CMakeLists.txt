@@ -98,15 +98,16 @@ set(CMAKE_C_FLAGS_RELEASE "${CMAKE_EXTRA_C_FLAGS} -no-integrated-cpp -Wno-unused
 # Libraries (src binding)
 ################################################################################
 
+
 ##-------------------------------------------------------------------------------
 ## Target system dependent
 ##-------------------------------------------------------------------------------
-#if (NOT USE_LIB_MQUEUE)
-#	include_directories ("${PROJECT_SOURCE_DIR}/lib/log/include")
-#	add_subdirectory (lib/log)
-#	set (EXTRA_LIBS ${EXTRA_LIBS} liblog)
-#endif (NOT USE_LIB_MQUEUE)
-#
+if (NOT HAVE_ANDROID_OS)
+	include_directories ("${PROJECT_SOURCE_DIR}/lib/log/include")
+	add_subdirectory (lib/log)
+	set (EXTRA_LIBS ${EXTRA_LIBS} liblog)
+endif (NOT HAVE_ANDROID_OS)
+
 #if (NOT HAVE_LIB_MQUEUE)
 #	include_directories ("${PROJECT_SOURCE_DIR}/lib/mqueue/include")
 #	add_subdirectory (lib/mqueue)

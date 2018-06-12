@@ -27,6 +27,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <errno.h>
 #include <tcp-tap/switchboard.h>
 #include "sig_mngr.h"
 #include "tcp-tap_config.h"
@@ -58,29 +59,29 @@
 
 /* stdin,stdout,stderr for the managed sub-process. Used for debugging. Can
  * safely be rerouted to /dev/null */
-char stdin_name[PATH_MAX] = "/tmp/tcp_tap_stdin";
-char stdout_name[PATH_MAX] = "/tmp/tcp_tap_stdout";
-char stderr_name[PATH_MAX] = "/tmp/tcp_tap_stderr";
+char stdin_name[NAME_MAX] = "/tmp/tcp_tap_stdin";
+char stdout_name[NAME_MAX] = "/tmp/tcp_tap_stdout";
+char stderr_name[NAME_MAX] = "/tmp/tcp_tap_stderr";
 
 /* Some log-files */
-char parent_log_name[PATH_MAX] = "/tmp/tcp_tap_parent.log";
-char child_log_name[PATH_MAX] = "/tmp/tcp_tap_child.log";   //stderr for the child
+char parent_log_name[NAME_MAX] = "/tmp/tcp_tap_parent.log";
+char child_log_name[NAME_MAX] = "/tmp/tcp_tap_child.log";   //stderr for the child
 
 /* Name of the main process to run */
-char execute_bin[PATH_MAX] = "/bin/sh";
+char execute_bin[NAME_MAX] = "/bin/sh";
 
 /* Port number */
-char port[PATH_MAX] = "6969";
+char port[NAME_MAX] = "6969";
 
 /* FIFO(s) pre-name */
-char fifo_prename[PATH_MAX] = FIFO_DIR "/tcptap-swtchbrd_";
+char fifo_prename[NAME_MAX] = FIFO_DIR "/tcptap-swtchbrd_";
 
 /* listen at NIC bound to this name (human readable name or
  * IP-address). Aditionaly two special names:
  * @HOSTNAME@: Look up the primary interface bound to this name
  * @ANY@: Allow connection to any of the servers IF
  * */
-char nic_name[PATH_MAX] = "127.0.0.1";
+char nic_name[NAME_MAX] = "127.0.0.1";
 
 #define SETFROMENV( envvar, locvar, buf_max)                \
 {                                                           \
@@ -114,8 +115,9 @@ void *to_child(void *arg)
     while (1) {
         i = read(lp->read_from, lp->buffer, BUFF_SZ);
         if (i < 0) {
-            perror("Failed reading from pipe: "__FILE__ " +" STR(__LINE__) " ");
-            exit(-1);
+            LOGE("Failed reading from file-descriptor" __FILE__ ":"
+                 STR(__LINE__) ": ");
+            exit(EXIT_FAILURE);
         }
         j = write(lp->write_to, lp->buffer, i);
         assert(i == j);
@@ -138,7 +140,8 @@ void *to_parent(void *arg)
     while (1) {
         i = read(lp->read_from, lp->buffer, BUFF_SZ);
         if (i < 0) {
-            perror("Failed reading from pipe: "__FILE__ " +" STR(__LINE__) " ");
+            LOGE("Failed reading from pipe: " __FILE__ " +" STR(__LINE__)
+                 " ");
             exit(-1);
         }
         j = write(lp->write_to, lp->buffer, i);
@@ -167,7 +170,7 @@ void *from_tcp(void *arg)
            lp->buffer[i-1]='\n';
          */
         if (i < 0) {
-            perror("Failed reading from TCP: "__FILE__ " +" STR(__LINE__) " ");
+            LOGE("Failed reading from TCP: " __FILE__ " +" STR(__LINE__) " ");
             exit(-1);
         }
         j = write(lp->write_to, lp->buffer, i);
@@ -201,15 +204,15 @@ int main(int argc, char **argv)
      * sure they fit */
     assert(sizeof(void *) >= sizeof(int));
 
-    SETFROMENV(TCP_TAP_EXEC, execute_bin, PATH_MAX);
-    SETFROMENV(TCP_TAP_PORT, port, PATH_MAX);
-    SETFROMENV(TCP_TAP_NICNAME, nic_name, PATH_MAX);
-    SETFROMENV(TCP_TAP_LOG_STDIN, stdin_name, PATH_MAX);
-    SETFROMENV(TCP_TAP_LOG_STDOUT, stdout_name, PATH_MAX);
-    SETFROMENV(TCP_TAP_LOG_STDERR, stderr_name, PATH_MAX);
-    SETFROMENV(TCP_TAP_LOG_PARENT, parent_log_name, PATH_MAX);
-    SETFROMENV(TCP_TAP_LOG_CHILD, child_log_name, PATH_MAX);
-    SETFROMENV(TCP_TAP_FIFO_PRE_NAME, fifo_prename, PATH_MAX);
+    SETFROMENV(TCP_TAP_EXEC, execute_bin, NAME_MAX);
+    SETFROMENV(TCP_TAP_PORT, port, NAME_MAX);
+    SETFROMENV(TCP_TAP_NICNAME, nic_name, NAME_MAX);
+    SETFROMENV(TCP_TAP_LOG_STDIN, stdin_name, NAME_MAX);
+    SETFROMENV(TCP_TAP_LOG_STDOUT, stdout_name, NAME_MAX);
+    SETFROMENV(TCP_TAP_LOG_STDERR, stderr_name, NAME_MAX);
+    SETFROMENV(TCP_TAP_LOG_PARENT, parent_log_name, NAME_MAX);
+    SETFROMENV(TCP_TAP_LOG_CHILD, child_log_name, NAME_MAX);
+    SETFROMENV(TCP_TAP_FIFO_PRE_NAME, fifo_prename, NAME_MAX);
 
     assert((stdinlog_fd = open(stdin_name, LFLAGS, LMODES)) > 0);
     assert((stdoutlog_fd = open(stdout_name, LFLAGS, LMODES)) > 0);
@@ -265,8 +268,8 @@ int main(int argc, char **argv)
         execv(execute_bin, exec_args);
 
         /* Should never execute */
-        perror("exec error: "__FILE__ " +" STR(__LINE__) " ");
-        exit(-1);
+        LOGE("exec error:" __FILE__ " +" STR(__LINE__) " %s", strerror(errno));
+        exit(EXIT_FAILURE);
     }
 
     /* Parent executes this */

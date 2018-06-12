@@ -22,6 +22,9 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <errno.h>
+#include "sig_mngr.h"
+#include "local.h"
 
 #undef  NDEBUG
 #include <assert.h>
@@ -37,7 +40,7 @@ static pid_t _pid_child = -1;
 #define DEF_FUN(X)                                          \
     void mngSig_##X( int sig ) {                            \
         signal( X, SIG_IGN);                                \
-        fprintf(stderr,"Forwarding signal [" #X "]\n");     \
+        LOGW("Forwarding signal [" #X "]\n");               \
         kill(_pid_child,sig);                               \
         signal( X, mngSig_##X );                            \
     }

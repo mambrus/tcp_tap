@@ -28,13 +28,15 @@
 #include <sys/stat.h>
 #include <netdb.h>
 #include <stdlib.h>
+#include <errno.h>
 
-#undef  NDEBUG
-#include <assert.h>
 #include <tcp-tap/switchboard.h>
 #include <tcp-tap/clientserver.h>
 #include "tcp-tap_config.h"
 #include "local.h"
+
+#undef  NDEBUG
+#include <assert.h>
 
 /* The size of each buffer used for transfer in either direction */
 #ifndef BUFF_SZ
@@ -123,7 +125,7 @@ static void *in_session_thread(void *inarg)
     char buf[BUFF_SZ];
     assert((fdo = open(switch_fifo.out_name, O_WRONLY)) >= 0);
 
-    fprintf(stderr, "Session [%d] connected.\n", node->id);
+    LOGI("Session [%d] connected.\n", node->id);
 
     for (rn = 1; rn > 0;) {
         rn = read(fd, buf, BUFF_SZ);
@@ -134,10 +136,11 @@ static void *in_session_thread(void *inarg)
         }
     }
     if (rn == 0) {
-        fprintf(stderr, "Session [%d] disconnected normally...\n", node->id);
+        LOGI("Session [%d] disconnected normally...\n", node->id);
     } else {
-        perror("Session read error detected: "__FILE__ " +" STR(__LINE__) " ");
-        fprintf(stderr, "Session [%d] now disconnecting.\n", node->id);
+        LOGE("Session read error detected: " __FILE__ " +" STR(__LINE__) " %s",
+             strerror(errno));
+        LOGE("Session [%d] now disconnecting.\n", node->id);
     }
     close(fdo);                 /* Release resource */
     disconnect_servlet(node);
@@ -225,30 +228,30 @@ static void *connect_mngmt_thread(void *arg)
 int switchboard_init(int port, const char *host, int echo, const char *prename)
 {
     int s;
-    char tprename[PATH_MAX];
-    char tin_name[PATH_MAX];
-    char tout_name[PATH_MAX];
+    char tprename[NAME_MAX];
+    char tin_name[NAME_MAX];
+    char tout_name[NAME_MAX];
     int slen;
     int pid = getpid();
 
-    memset(tprename, 0, PATH_MAX);
-    memset(tin_name, 0, PATH_MAX);
-    memset(tout_name, 0, PATH_MAX);
+    memset(tprename, 0, NAME_MAX);
+    memset(tin_name, 0, NAME_MAX);
+    memset(tout_name, 0, NAME_MAX);
 
     /* Constructing fifo-names (build-up) */
     if (prename == NULL) {
-        strncpy(tprename, FIFO_DIR "/fifo_switchboard", PATH_MAX);
+        strncpy(tprename, FIFO_DIR "/fifo_switchboard", NAME_MAX);
     } else {
-        strncpy(tprename, FIFO_DIR "/", PATH_MAX);
-        slen = strnlen(tprename, PATH_MAX);
-        strncpy(&tprename[slen], prename, PATH_MAX - slen);
+        strncpy(tprename, FIFO_DIR "/", NAME_MAX);
+        slen = strnlen(tprename, NAME_MAX);
+        strncpy(&tprename[slen], prename, NAME_MAX - slen);
     }
 
-    snprintf(tin_name, PATH_MAX, "%s_%s_%d", tprename, "in", pid);
-    snprintf(tout_name, PATH_MAX, "%s_%s_%d", tprename, "out", pid);
+    snprintf(tin_name, NAME_MAX, "%s_%s_%d", tprename, "in", pid);
+    snprintf(tout_name, NAME_MAX, "%s_%s_%d", tprename, "out", pid);
 
-    switch_fifo.in_name = strndup(tin_name, PATH_MAX);
-    switch_fifo.out_name = strndup(tout_name, PATH_MAX);
+    switch_fifo.in_name = strndup(tin_name, NAME_MAX);
+    switch_fifo.out_name = strndup(tout_name, NAME_MAX);
 
     unlink(switch_fifo.in_name);
     unlink(switch_fifo.out_name);
