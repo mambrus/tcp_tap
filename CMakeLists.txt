@@ -57,6 +57,12 @@ set(SYSROOT
 #-------------------------------------------------------------------------------
 # System (project supported) options
 #-------------------------------------------------------------------------------
+if (CMAKE_COMPILER_IS_GNUCC)
+	if (NOT CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 5.4)
+		set(HAVE_SIGUNUSED)
+	endif ()
+endif (CMAKE_COMPILER_IS_GNUCC)
+
 
 #-------------------------------------------------------------------------------
 # Defaults to corresponding environment variables

@@ -26,6 +26,7 @@
 #undef  NDEBUG
 #include <assert.h>
 #include "sig_mngr.h"
+#include "tcp-tap_config.h"
 
 /* Install signal-handler for every imaginable signal. If tcp_tap receives any,
  * its default behaviour is to forward it to the child, unless corresponding
@@ -74,7 +75,9 @@ DEF_FUN(SIGHUP)
     DEF_FUN(SIGPOLL)
     DEF_FUN(SIGPWR)
     DEF_FUN(SIGSYS)
+#ifdef HAVE_SIGUNUSED
     DEF_FUN(SIGUNUSED)
+#endif
     DEF_FUN(SIGRTMIN)
     DEF_FUN(SIGRTMAX)
 //DEF_FUN(SIGSWI)
@@ -124,7 +127,9 @@ int sig_mngr_init(pid_t pid_child)
     COND_SIGHNDLR_INSTALL(SIGPOLL);
     COND_SIGHNDLR_INSTALL(SIGPWR);
     COND_SIGHNDLR_INSTALL(SIGSYS);
+#ifdef HAVE_SIGUNUSED
     COND_SIGHNDLR_INSTALL(SIGUNUSED);
+#endif
     COND_SIGHNDLR_INSTALL(SIGRTMIN);
     COND_SIGHNDLR_INSTALL(SIGRTMAX);
     //COND_SIGHNDLR_INSTALL(SIGSWI);
