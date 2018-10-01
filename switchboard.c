@@ -129,8 +129,8 @@ static void *in_session_thread(void *inarg)
         rn = read(fd, buf, BUFF_SZ);
         if (rn > 0) {
             write_toall(buf, rn);
-            write(fdo, buf, rn);
-            assert(sn = rn);
+            sn = write(fdo, buf, rn);
+            assert(sn == rn);
         }
     }
     if (rn == 0) {
