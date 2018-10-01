@@ -31,10 +31,9 @@ char execute_bin[PATH_MAX] = "/bin/bash";
 int main(int argc, char **argv)
 {
     int i, childpid = 0, wpid, status;
-    char *exec_args[MAX_ARGS];
-    assert(argc < MAX_ARGS);
+    char *exec_args[MAX_ARGS] = {NULL};
 
-    memset(exec_args, 0, MAX_ARGS); /* Makes sure to null terminate arg-list */
+	 assert(argc < MAX_ARGS);
 
     exec_args[0] = execute_bin;
     for (i = 1; i < argc; i++) {

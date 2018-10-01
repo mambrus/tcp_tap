@@ -184,7 +184,7 @@ int main(int argc, char **argv)
     int pipe_to_parent[2];
     int parent_log_fd, child_err_fd;
     int stdinlog_fd, stdoutlog_fd, stderrlog_fd;
-    char *exec_args[MAX_ARGS];
+    char *exec_args[MAX_ARGS] = {NULL};
     char buf_to_child[BUFF_SZ];
     char buf_to_parent[BUFF_SZ];
     int childpid, wpid, status;
@@ -223,7 +223,6 @@ int main(int argc, char **argv)
     pipe(pipe_to_child);
     pipe(pipe_to_parent);
 
-    memset(exec_args, 0, MAX_ARGS); /* Makes sure to null terminate arg-list */
     exec_args[0] = execute_bin;
     for (i = 1; i < argc; i++) {
         exec_args[i] = argv[i];
