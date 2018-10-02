@@ -17,7 +17,7 @@
 #include "config.h"
 
 #undef  NDEBUG
-#include <assert.h>
+#include <liblog/assure.h>
 
 /* The size of each buffer used for transfer in either direction */
 #ifndef BUFF_SZ
@@ -28,8 +28,10 @@
 #define HOST_IP "localhost"
 #define KILLWORD "@@@"
 
+#ifndef STR
 #define _XSTR( X )  #X
 #define STR( X ) _XSTR( X )
+#endif
 
 struct appData {
     int quit;
@@ -54,12 +56,12 @@ void *from_stdin_to_switch(void *arg)
     struct appData *ad = (struct appData *)arg;
 
     memset(buf, 0, BUFF_SZ);
-    assert((wfd = open(switchboard_fifo_names()->in_name, O_WRONLY)) >= 0);
+    ASSERT((wfd = open(switchboard_fifo_names()->in_name, O_WRONLY)) >= 0);
 
     while (rn > 0 && !ad->quit) {
         rn = read(0, buf, BUFF_SZ);
         sn = write(wfd, buf, rn);
-        assert(rn == sn);
+        ASSERT(rn == sn);
         if (termn_cmp(buf, KILLWORD, BUFF_SZ) == 0) {
             ad->quit = 1;
             printf("Killword from sdtin received\n");
@@ -82,12 +84,12 @@ void *from_swtch_to_stdout(void *arg)
     struct appData *ad = (struct appData *)arg;
 
     memset(buf, 0, BUFF_SZ);
-    assert((rfd = open(switchboard_fifo_names()->out_name, O_RDONLY)) >= 0);
+    ASSERT((rfd = open(switchboard_fifo_names()->out_name, O_RDONLY)) >= 0);
 
     while (rn > 0 && !ad->quit) {
         rn = read(rfd, buf, BUFF_SZ);
         sn = write(1, buf, rn);
-        assert(rn == sn);
+        ASSERT(rn == sn);
         if (termn_cmp(buf, KILLWORD, BUFF_SZ) == 0) {
             ad->quit = 1;
             printf("Killword from switchboard received\n");
@@ -118,8 +120,8 @@ int main(int argc, char **argv)
     printf("Note: There is no way for server to kick sessions."
            " Each client has to leave on it's own.\n");
 
-    assert(pthread_create(&thread2, NULL, from_swtch_to_stdout, &appData) == 0);
-    assert(pthread_create(&thread1, NULL, from_stdin_to_switch, &appData) == 0);
+    ASSERT(pthread_create(&thread2, NULL, from_swtch_to_stdout, &appData) == 0);
+    ASSERT(pthread_create(&thread1, NULL, from_stdin_to_switch, &appData) == 0);
 
     pthread_join(thread1, NULL);
     pthread_join(thread2, NULL);

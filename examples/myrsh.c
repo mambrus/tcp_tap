@@ -20,7 +20,7 @@
 #include <sys/wait.h>
 #include <tcp-tap/clientserver.h>
 #undef  NDEBUG
-#include <assert.h>
+#include <liblog/assure.h>
 
 #define PORT_NUMBER 1974
 #define MAX_ARGS 50
@@ -33,14 +33,14 @@ int main(int argc, char **argv)
     int i, childpid = 0, wpid, status;
     char *exec_args[MAX_ARGS] = {NULL};
 
-	 assert(argc < MAX_ARGS);
+	 ASSERT(argc < MAX_ARGS);
 
     exec_args[0] = execute_bin;
     for (i = 1; i < argc; i++) {
         exec_args[i] = argv[i];
     }
 
-    assert((childpid = fork()) >= 0);
+    ASSERT((childpid = fork()) >= 0);
 
     if (childpid == 0) {
         /* Child executes this */
@@ -71,7 +71,7 @@ int main(int argc, char **argv)
     /* Parent executes this */
     do {
         wpid = waitpid(childpid, &status, WUNTRACED);
-        assert(wpid >= 0);
+        ASSERT(wpid >= 0);
     } while (!WIFEXITED(status) && !WIFSIGNALED(status));
 
     return status;

@@ -35,7 +35,7 @@
 #include "local.h"
 
 #undef  NDEBUG
-#include <assert.h>
+#include <liblog/assure.h>
 
 #define BACKLOG 5
 #define MAX_RETRY 3
@@ -55,13 +55,13 @@ int init_server(int port, const char *hostname)
         !strncmp(hostname, "@HOSTNAME@", NAME_MAX) ||
         !strncmp(hostname, "@ANY@", NAME_MAX)
         )
-        assert(gethostname(name, NAME_MAX) == 0);
+        ASSERT(gethostname(name, NAME_MAX) == 0);
     else
         strncpy(name, hostname, NAME_MAX);
 
-    assert((hp = gethostbyname(name)) != NULL);
+    ASSERT((hp = gethostbyname(name)) != NULL);
 
-    assert((s = socket(AF_INET, SOCK_STREAM, 0)) >= 0);
+    ASSERT((s = socket(AF_INET, SOCK_STREAM, 0)) >= 0);
     lsin.sin_family = AF_INET;
     lsin.sin_port = htons(port);
 
@@ -95,7 +95,7 @@ int open_server(int s)
     fromlen = sizeof(struct sockaddr_in);
 
     for (n = 0; n < MAX_RETRY; n++) {
-        assert(listen(s, BACKLOG) >= 0);
+        ASSERT(listen(s, BACKLOG) >= 0);
 
         rc = accept(s, (struct sockaddr *)&rsin, &fromlen);
         if (rc < 0) {
@@ -118,9 +118,9 @@ int open_client(int port, const char *hostname)
     char name[NAME_MAX];
 
     strncpy(name, hostname, NAME_MAX);
-    assert((hp = gethostbyname(name)) != NULL);
+    ASSERT((hp = gethostbyname(name)) != NULL);
 
-    assert((s = socket(AF_INET, SOCK_STREAM, 0)) >= 0);
+    ASSERT((s = socket(AF_INET, SOCK_STREAM, 0)) >= 0);
     lsin.sin_family = AF_INET;
     lsin.sin_port = htons(port);
 

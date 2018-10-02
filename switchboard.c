@@ -36,7 +36,7 @@
 #include "local.h"
 
 #undef  NDEBUG
-#include <assert.h>
+#include <liblog/assure.h>
 
 /* The size of each buffer used for transfer in either direction */
 #ifndef BUFF_SZ
@@ -100,7 +100,7 @@ static void write_toall(const char *buf, int len)
     if (ss.ea) {
         while (ln) {
             sn = write(ln->fd, buf, len);
-            assert(len == sn);
+            ASSERT(len == sn);
             ln = ln->next;
         }
     }
@@ -123,7 +123,7 @@ static void *in_session_thread(void *inarg)
     struct serv_node *node = (struct serv_node *)inarg;
     int fdo, fd = node->fd;
     char buf[BUFF_SZ];
-    assert((fdo = open(switch_fifo.out_name, O_WRONLY)) >= 0);
+    ASSERT((fdo = open(switch_fifo.out_name, O_WRONLY)) >= 0);
 
     LOGI("Session [%d] connected.\n", node->id);
 
@@ -132,7 +132,7 @@ static void *in_session_thread(void *inarg)
         if (rn > 0) {
             write_toall(buf, rn);
             sn = write(fdo, buf, rn);
-            assert(sn == rn);
+            ASSERT(sn == rn);
         }
     }
     if (rn == 0) {
@@ -156,7 +156,7 @@ static void *handle_in_fifo_thread(void *arg)
     char buf[BUFF_SZ];
     int rn, fd;
 
-    assert((fd = open(switch_fifo.in_name, O_RDONLY)) >= 0);
+    ASSERT((fd = open(switch_fifo.in_name, O_RDONLY)) >= 0);
 
     while (1) {
         rn = read(fd, buf, BUFF_SZ);
@@ -171,10 +171,10 @@ static void *handle_in_fifo_thread(void *arg)
 static void disconnect_servlet(struct serv_node *node)
 {
     if (ss.n == 1) {
-        assert((node->prev == NULL) && (node->next == NULL));
+        ASSERT((node->prev == NULL) && (node->next == NULL));
     }
     if (node->prev == NULL && node->next == NULL) {
-        assert(ss.n == 1);
+        ASSERT(ss.n == 1);
         ss.serv_list = NULL;
     } else {
         if (node->prev) {
@@ -199,7 +199,7 @@ static void *connect_mngmt_thread(void *arg)
     int s = (long)arg;
 
     while (1) {
-        assert((fd = open_server(s)) >= 0);
+        ASSERT((fd = open_server(s)) >= 0);
         tn = malloc(sizeof(struct serv_node));
         ss.i++;
         tn->id = ss.i;
@@ -219,10 +219,13 @@ static void *connect_mngmt_thread(void *arg)
         (*lnp)->prev = lp;
 
         ss.n++;
-        assert(pthread_create(&tn->thread, NULL, in_session_thread, (void *)tn)
+        ASSERT(pthread_create(&tn->thread, NULL, in_session_thread, (void *)tn)
                == 0);
         //sleep(10);
     }
+
+	 /* Will never execute, just stop gcc from complaining*/
+	 return NULL;
 }
 
 int switchboard_init(int port, const char *host, int echo, const char *prename)
@@ -261,10 +264,10 @@ int switchboard_init(int port, const char *host, int echo, const char *prename)
 
     s = init_switchboard(port, host, echo);
 
-    assert(pthread_create(&threads.to_swtch, NULL, handle_in_fifo_thread, NULL)
+    ASSERT(pthread_create(&threads.to_swtch, NULL, handle_in_fifo_thread, NULL)
            == 0);
 
-    assert(pthread_create
+    ASSERT(pthread_create
            (&threads.mngmt, NULL, connect_mngmt_thread,
             (void *)((intptr_t) s)) == 0);
     return s;
@@ -280,12 +283,12 @@ void switchboard_die(int s)
     if (ss.ea) {
         while (ln) {
             pthread_cancel(ln->thread);
-            assert(close(ln->fd) == 0);
+            ASSERT(close(ln->fd) == 0);
             ln = ln->next;
         }
     }
 
-    assert(close(s) == 0);
+    ASSERT(close(s) == 0);
     unlink(switch_fifo.in_name);
     unlink(switch_fifo.out_name);
     free(switch_fifo.in_name);

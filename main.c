@@ -34,7 +34,7 @@
 #include "local.h"
 
 #undef  NDEBUG
-#include <assert.h>
+#include <liblog/assure.h>
 
 /* The maximum numbers of arguments in child we handle*/
 #define MAX_ARGS 50
@@ -110,7 +110,7 @@ void *to_child(void *arg)
     int i, j, wfd;
     struct data_link *lp = (struct data_link *)arg;
 
-    assert((wfd = open(switchboard_fifo_names()->in_name, O_WRONLY)) >= 0);
+    ASSERT((wfd = open(switchboard_fifo_names()->in_name, O_WRONLY)) >= 0);
 
     while (1) {
         i = read(lp->read_from, lp->buffer, BUFF_SZ);
@@ -120,11 +120,11 @@ void *to_child(void *arg)
             exit(EXIT_FAILURE);
         }
         j = write(lp->write_to, lp->buffer, i);
-        assert(i == j);
+        ASSERT(i == j);
         j = write(lp->log_to, lp->buffer, i);
-        assert(i == j);
+        ASSERT(i == j);
         j = write(wfd, lp->buffer, i);
-        assert(i == j);
+        ASSERT(i == j);
     }
     return NULL;
 }
@@ -135,7 +135,7 @@ void *to_parent(void *arg)
     int i, j, wfd;
     struct data_link *lp = (struct data_link *)arg;
 
-    assert((wfd = open(switchboard_fifo_names()->in_name, O_WRONLY)) >= 0);
+    ASSERT((wfd = open(switchboard_fifo_names()->in_name, O_WRONLY)) >= 0);
 
     while (1) {
         i = read(lp->read_from, lp->buffer, BUFF_SZ);
@@ -145,11 +145,11 @@ void *to_parent(void *arg)
             exit(-1);
         }
         j = write(lp->write_to, lp->buffer, i);
-        assert(i == j);
+        ASSERT(i == j);
         j = write(lp->log_to, lp->buffer, i);
-        assert(i == j);
+        ASSERT(i == j);
         j = write(wfd, lp->buffer, i);
-        assert(i == j);
+        ASSERT(i == j);
     }
     return NULL;
 }
@@ -160,7 +160,7 @@ void *from_tcp(void *arg)
     int i, j, rfd;
     struct data_link *lp = (struct data_link *)arg;
 
-    assert((rfd = open(switchboard_fifo_names()->out_name, O_RDONLY)) >= 0);
+    ASSERT((rfd = open(switchboard_fifo_names()->out_name, O_RDONLY)) >= 0);
 
     while (1) {
         i = read(rfd, lp->buffer, BUFF_SZ);
@@ -174,9 +174,9 @@ void *from_tcp(void *arg)
             exit(-1);
         }
         j = write(lp->write_to, lp->buffer, i);
-        assert(i == j);
+        ASSERT(i == j);
         j = write(lp->log_to, lp->buffer, i);
-        assert(i == j);
+        ASSERT(i == j);
     }
     return NULL;
 }
@@ -198,11 +198,11 @@ int main(int argc, char **argv)
     struct data_link link_to_child;
     struct data_link link_to_parent;
 
-    assert(argc < MAX_ARGS);
+    ASSERT(argc < MAX_ARGS);
 
     /* We're passing sockes as arguments to threads as pass by value. Make
      * sure they fit */
-    assert(sizeof(void *) >= sizeof(int));
+    ASSERT(sizeof(void *) >= sizeof(int));
 
     SETFROMENV(TCP_TAP_EXEC, execute_bin, NAME_MAX);
     SETFROMENV(TCP_TAP_PORT, port, NAME_MAX);
@@ -214,11 +214,11 @@ int main(int argc, char **argv)
     SETFROMENV(TCP_TAP_LOG_CHILD, child_log_name, NAME_MAX);
     SETFROMENV(TCP_TAP_FIFO_PRE_NAME, fifo_prename, NAME_MAX);
 
-    assert((stdinlog_fd = open(stdin_name, LFLAGS, LMODES)) > 0);
-    assert((stdoutlog_fd = open(stdout_name, LFLAGS, LMODES)) > 0);
-    assert((stderrlog_fd = open(stderr_name, LFLAGS, LMODES)) > 0);
-    assert((child_err_fd = open(child_log_name, LFLAGS, LMODES)) > 0);
-    assert((parent_log_fd = open(parent_log_name, LFLAGS, LMODES)) > 0);
+    ASSERT((stdinlog_fd = open(stdin_name, LFLAGS, LMODES)) > 0);
+    ASSERT((stdoutlog_fd = open(stdout_name, LFLAGS, LMODES)) > 0);
+    ASSERT((stderrlog_fd = open(stderr_name, LFLAGS, LMODES)) > 0);
+    ASSERT((child_err_fd = open(child_log_name, LFLAGS, LMODES)) > 0);
+    ASSERT((parent_log_fd = open(parent_log_name, LFLAGS, LMODES)) > 0);
 
     close(2);
     dup(stderrlog_fd);
@@ -231,7 +231,7 @@ int main(int argc, char **argv)
         exec_args[i] = argv[i];
     }
 
-    assert((childpid = fork()) >= 0);
+    ASSERT((childpid = fork()) >= 0);
 
     if (childpid == 0) {
         /* Child excutes this */
@@ -242,7 +242,7 @@ int main(int argc, char **argv)
             k = write(child_err_fd, buf_to_child,
                       strnlen(buf_to_child, BUFF_SZ));
             if (i)
-                assert(k == j);
+                ASSERT(k == j);
         }
         sprintf(buf_to_child, "=========X=========X=========X=========X\n");
         write(child_err_fd, buf_to_child, strnlen(buf_to_child, BUFF_SZ));
@@ -282,7 +282,7 @@ int main(int argc, char **argv)
         j = snprintf(buf_to_parent, BUFF_SZ, "%s\n", exec_args[i]);
         k = write(parent_log_fd, buf_to_parent,
                   strnlen(buf_to_parent, BUFF_SZ));
-        assert(k == j);
+        ASSERT(k == j);
     }
     sprintf(buf_to_parent, "=========Y=========Y=========Y=========Y\n");
     write(parent_log_fd, buf_to_parent, strnlen(buf_to_parent, BUFF_SZ));
@@ -300,15 +300,15 @@ int main(int argc, char **argv)
     link_to_parent.buffer = buf_to_parent;
 
     s = switchboard_init(atoi(port), nic_name, 1, fifo_prename);
-    assert(pthread_create(&pt_to_child, NULL, to_child, &link_to_child) == 0);
-    assert(pthread_create(&pt_to_parent, NULL, to_parent, &link_to_parent) ==
+    ASSERT(pthread_create(&pt_to_child, NULL, to_child, &link_to_child) == 0);
+    ASSERT(pthread_create(&pt_to_parent, NULL, to_parent, &link_to_parent) ==
            0);
-    assert(pthread_create(&pt_from_tcp, NULL, from_tcp, &link_to_child) == 0);
+    ASSERT(pthread_create(&pt_from_tcp, NULL, from_tcp, &link_to_child) == 0);
 
     do {
         //wpid=waitpid( /*childpid*/ /*0*/ -1, &status, WUNTRACED );
         wpid = waitpid(childpid, &status, WUNTRACED);
-        assert(wpid >= 0);
+        ASSERT(wpid >= 0);
     } while (!WIFEXITED(status) && !WIFSIGNALED(status));
 
     //while ( wait((int*)0) != childpid );

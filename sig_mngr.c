@@ -27,7 +27,7 @@
 #include "local.h"
 
 #undef  NDEBUG
-#include <assert.h>
+#include <liblog/assure.h>
 #include "sig_mngr.h"
 #include "tcp-tap_config.h"
 
