@@ -234,7 +234,6 @@ int switchboard_init(int port, const char *host, int echo, const char *prename)
     char tprename[NAME_MAX];
     char tin_name[NAME_MAX];
     char tout_name[NAME_MAX];
-    int slen;
     int pid = getpid();
 
     memset(tprename, 0, NAME_MAX);
@@ -245,9 +244,7 @@ int switchboard_init(int port, const char *host, int echo, const char *prename)
     if (prename == NULL) {
         strncpy(tprename, FIFO_DIR "/fifo_switchboard", NAME_MAX);
     } else {
-        strncpy(tprename, FIFO_DIR "/", NAME_MAX);
-        slen = strnlen(tprename, NAME_MAX);
-        strncpy(&tprename[slen], prename, NAME_MAX - slen);
+        strncpy(tprename, prename, strnlen(prename,NAME_MAX));
     }
 
     snprintf(tin_name, NAME_MAX, "%s_%s_%d", tprename, "in", pid);
