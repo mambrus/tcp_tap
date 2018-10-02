@@ -23,7 +23,7 @@
 
 #else
 
-#include <log.h>
+#include <liblog/log.h>
 
 #endif                          // __ANDROID__
 

@@ -15,6 +15,7 @@ include_directories("${CMAKE_CURRENT_BINARY_DIR}/include")
 
 CHECK_LIBRARY_EXISTS(rt clock_gettime "" HAVE_LIB_RT)
 CHECK_LIBRARY_EXISTS(pthread pthread_create "" HAVE_LIB_PTHREAD)
+CHECK_LIBRARY_EXISTS(log log_set_verbosity "/usr/local/lib/" HAVE_LIB_LIBLOG)
 
 if (HAVE_LIB_RT)
     set(EXTRA_LIBS ${EXTRA_LIBS} rt)
@@ -23,6 +24,15 @@ endif (HAVE_LIB_RT)
 if (HAVE_LIB_PTHREAD)
     set(EXTRA_LIBS ${EXTRA_LIBS} pthread)
 endif (HAVE_LIB_PTHREAD)
+
+if (HAVE_LIB_LIBLOG)
+    set (EXTRA_LIBS ${EXTRA_LIBS} log)
+else (HAVE_LIB_LIBLOG)
+   message (SEND_ERROR
+      "Dependent library liblog isn't installed"
+      "Please install or build from: "
+      "https://github.com/mambrus/liblog")
+endif (HAVE_LIB_LIBLOG)
 
 message (STATUS "Checking for (p)Threads")
 find_package(Threads)
@@ -102,11 +112,6 @@ set(CMAKE_C_FLAGS_RELEASE "${CMAKE_EXTRA_C_FLAGS} -no-integrated-cpp -Wno-unused
 ##-------------------------------------------------------------------------------
 ## Target system dependent
 ##-------------------------------------------------------------------------------
-if (NOT HAVE_ANDROID_OS)
-	include_directories ("${PROJECT_SOURCE_DIR}/lib/log/include")
-	add_subdirectory (lib/log)
-	set (EXTRA_LIBS ${EXTRA_LIBS} liblog)
-endif (NOT HAVE_ANDROID_OS)
 
 #if (NOT HAVE_LIB_MQUEUE)
 #	include_directories ("${PROJECT_SOURCE_DIR}/lib/mqueue/include")
@@ -150,7 +155,7 @@ target_link_libraries (atcptap ${EXTRA_LIBS})
 add_library(sotcptap SHARED ${LIB_TCP_TAP_SOURCE})
 target_link_libraries (sotcptap ${EXTRA_LIBS})
 set_target_properties(
-  sotcptap PROPERTIES PUBLIC_HEADER 
+  sotcptap PROPERTIES PUBLIC_HEADER
   "include/tcp-tap/clientserver.h;include/tcp-tap/switchboard.h")
 
 # This level - program
