@@ -187,7 +187,7 @@ int main(int argc, char **argv)
     int pipe_to_parent[2];
     int parent_log_fd, child_err_fd;
     int stdinlog_fd, stdoutlog_fd, stderrlog_fd;
-    char *exec_args[MAX_ARGS] = {NULL};
+    char *exec_args[MAX_ARGS] = { NULL };
     char buf_to_child[BUFF_SZ];
     char buf_to_parent[BUFF_SZ];
     int childpid, wpid, status;
@@ -197,6 +197,8 @@ int main(int argc, char **argv)
     pthread_t pt_from_tcp;
     struct data_link link_to_child;
     struct data_link link_to_parent;
+    int v = 0, size = argc - 1;
+    char *cmd;
 
     ASSERT(argc < MAX_ARGS);
 
@@ -219,6 +221,16 @@ int main(int argc, char **argv)
     ASSERT((stderrlog_fd = open(stderr_name, LFLAGS, LMODES)) > 0);
     ASSERT((child_err_fd = open(child_log_name, LFLAGS, LMODES)) > 0);
     ASSERT((parent_log_fd = open(parent_log_name, LFLAGS, LMODES)) > 0);
+
+    cmd = (char *)malloc(v);
+    for (i = 1; i <= size; i++) {
+        cmd = (char *)realloc(cmd, (v + strlen(argv[i])));
+        strcat(cmd, argv[i]);
+        strcat(cmd, " ");
+    }
+    LOGI("tcp-tap starts [%d]: %s %s\n", argc, execute_bin, cmd);
+    LOGI("tcp-tap socket [%s:%d]\n", nic_name, port);
+    free(cmd);
 
     close(2);
     dup(stderrlog_fd);
