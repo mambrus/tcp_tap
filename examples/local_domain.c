@@ -22,7 +22,7 @@
 #include <tcp-tap/clientserver.h>
 
 #undef  NDEBUG
-#include <assert.h>
+#include <liblog/assure.h>
 
 #ifndef BUFF_SZ
 #define BUFF_SZ 0x400
@@ -45,7 +45,7 @@ void *servletThread(void *inarg)
     while (rn > 0) {
         rn = read(fd, buf, BUFF_SZ);
         sn = write(1, buf, rn);
-        assert(rn == sn);
+        ASSERT(rn == sn);
     }
     fprintf(stderr, "Thread [%d] finished session for fd [%d]\n", tid, fd);
     if (rn < 0)
@@ -74,7 +74,7 @@ int main(int argc, char **argv)
     our_name = argv[1];
     rmt_name = argv[2];
 
-    assert(pthread_create(&t_thread, NULL, servletThread, our_name) == 0);
+    ASSERT(pthread_create(&t_thread, NULL, servletThread, our_name) == 0);
 
     while (1) {
         printf("Pid=%d client ready %s, our_name=%s, rmt_name=%s\n",
@@ -92,7 +92,7 @@ int main(int argc, char **argv)
 
             fprintf(stderr, "Writing to socket\n");
             sn = write(s, buf, rn);
-            assert(rn == sn);
+            ASSERT(rn == sn);
         }
         if (rn < 0) {
             perror("read() failed: ");

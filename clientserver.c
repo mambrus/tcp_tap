@@ -30,10 +30,12 @@
 #include <netdb.h>
 #include <stdlib.h>
 #include <netinet/in.h>
+#include <errno.h>
 #include <tcp-tap/clientserver.h>
+#include "local.h"
 
 #undef  NDEBUG
-#include <assert.h>
+#include <liblog/assure.h>
 
 #define BACKLOG 5
 #define MAX_RETRY 3
@@ -44,28 +46,28 @@
 int init_server(int port, const char *hostname)
 {
     int s, n;
-    char name[PATH_MAX];
+    char name[NAME_MAX];
     struct hostent *hp;
     struct sockaddr_in lsin;
     int rc;
 
     if (!hostname ||
-        !strncmp(hostname, "@HOSTNAME@", PATH_MAX) ||
-        !strncmp(hostname, "@ANY@", PATH_MAX)
+        !strncmp(hostname, "@HOSTNAME@", NAME_MAX) ||
+        !strncmp(hostname, "@ANY@", NAME_MAX)
         )
-        assert(gethostname(name, PATH_MAX) == 0);
+        ASSERT(gethostname(name, NAME_MAX) == 0);
     else
-        strncpy(name, hostname, PATH_MAX);
+        strncpy(name, hostname, NAME_MAX);
 
-    assert((hp = gethostbyname(name)) != NULL);
+    ASSERT((hp = gethostbyname(name)) != NULL);
 
-    assert((s = socket(AF_INET, SOCK_STREAM, 0)) >= 0);
+    ASSERT((s = socket(AF_INET, SOCK_STREAM, 0)) >= 0);
     lsin.sin_family = AF_INET;
     lsin.sin_port = htons(port);
 
     memcpy(&lsin.sin_addr, hp->h_addr, hp->h_length);
 
-    if (!strncmp(hostname, "@ANY@", PATH_MAX))
+    if (!strncmp(hostname, "@ANY@", NAME_MAX))
         lsin.sin_addr.s_addr = INADDR_ANY;
 
     for (n = 0; n < MAX_RETRY; n++) {
@@ -74,8 +76,8 @@ int init_server(int port, const char *hostname)
 
         rc = bind(s, (struct sockaddr *)&lsin, sizeof(lsin));
         if (rc < 0) {
-            perror("bind: ");
-            fprintf(stderr, "Retry: %d of %d\n", n + 1, MAX_RETRY);
+            LOGE("bind: " __FILE__ " +" STR(__LINE__) " %s", strerror(errno));
+            LOGE("Retry: %d of %d\n", n + 1, MAX_RETRY);
             usleep(RETRY_US);
         } else
             break;
@@ -93,13 +95,13 @@ int open_server(int s)
     fromlen = sizeof(struct sockaddr_in);
 
     for (n = 0; n < MAX_RETRY; n++) {
-        assert(listen(s, BACKLOG) >= 0);
+        ASSERT(listen(s, BACKLOG) >= 0);
 
         rc = accept(s, (struct sockaddr *)&rsin, &fromlen);
         if (rc < 0) {
             /* print error reason to stderr, but don't exit */
-            perror("accept: ");
-            fprintf(stderr, "Retry %d of %d\n", n + 1, MAX_RETRY);
+            LOGE("accept: " __FILE__ " +" STR(__LINE__) " %s", strerror(errno));
+            LOGE("Retry %d of %d\n", n + 1, MAX_RETRY);
             usleep(RETRY_US);
         } else
             break;
@@ -113,12 +115,12 @@ int open_client(int port, const char *hostname)
     socklen_t s;
     int rc, n;
     struct hostent *hp;
-    char name[PATH_MAX];
+    char name[NAME_MAX];
 
-    strncpy(name, hostname, PATH_MAX);
-    assert((hp = gethostbyname(name)) != NULL);
+    strncpy(name, hostname, NAME_MAX);
+    ASSERT((hp = gethostbyname(name)) != NULL);
 
-    assert((s = socket(AF_INET, SOCK_STREAM, 0)) >= 0);
+    ASSERT((s = socket(AF_INET, SOCK_STREAM, 0)) >= 0);
     lsin.sin_family = AF_INET;
     lsin.sin_port = htons(port);
 
@@ -129,8 +131,9 @@ int open_client(int port, const char *hostname)
         rc = connect(s, (struct sockaddr *)&lsin, sizeof(lsin));
         if (rc < 0) {
             /* print error reason to stderr, but don't exit */
-            perror("connect: ");
-            fprintf(stderr, "Retry %d of %d\n", n + 1, MAX_RETRY);
+            LOGE("connect: " __FILE__ " +" STR(__LINE__) " %s",
+                 strerror(errno));
+            LOGE("Retry %d of %d\n", n + 1, MAX_RETRY);
             usleep(RETRY_US);
         } else {
             rc = s;
@@ -150,7 +153,7 @@ int named_socket(int isserver, const char *filename)
     /* Create the socket. */
     sock = socket(PF_LOCAL, SOCK_DGRAM, 0);
     if (sock < 0) {
-        perror("socket: ");
+        LOGE("socket: " __FILE__ " +" STR(__LINE__) " %s", strerror(errno));
         exit(EXIT_FAILURE);
     }
 
@@ -170,12 +173,13 @@ int named_socket(int isserver, const char *filename)
 
     if (isserver) {
         if (bind(sock, (struct sockaddr *)&name, size) < 0) {
-            perror("bind: ");
+            LOGE("bind: " __FILE__ " +" STR(__LINE__) " %s", strerror(errno));
             exit(EXIT_FAILURE);
         }
     } else {
         if (connect(sock, (struct sockaddr *)&name, size) < 0) {
-            perror("connect: ");
+            LOGE("connect: " __FILE__ " +" STR(__LINE__) " %s",
+                 strerror(errno));
             exit(EXIT_FAILURE);
         }
     }
@@ -208,33 +212,33 @@ ssize_t read_fd(int sock, void *buf, ssize_t bufsize, int *fd)
         msg.msg_controllen = sizeof(cmsgu.control);
         size = recvmsg(sock, &msg, 0);
         if (size < 0) {
-            perror("recvmsg");
-            exit(1);
+            LOGE("recvmsg: %s", strerror(errno));
+            exit(EXIT_FAILURE);
         }
         if ((msg.msg_flags & MSG_TRUNC) || (msg.msg_flags & MSG_CTRUNC)) {
-            fprintf(stderr, "control message truncated");
-            exit(1);
+            LOGE("control message truncated");
+            exit(EXIT_FAILURE);
         }
         cmsg = CMSG_FIRSTHDR(&msg);
         if (cmsg && cmsg->cmsg_len == CMSG_LEN(sizeof(int))) {
             if (cmsg->cmsg_level != SOL_SOCKET) {
-                fprintf(stderr, "invalid cmsg_level %d\n", cmsg->cmsg_level);
-                exit(1);
+                LOGE("invalid cmsg_level %d\n", cmsg->cmsg_level);
+                exit(EXIT_FAILURE);
             }
             if (cmsg->cmsg_type != SCM_RIGHTS) {
-                fprintf(stderr, "invalid cmsg_type %d\n", cmsg->cmsg_type);
-                exit(1);
+                LOGE("invalid cmsg_type %d\n", cmsg->cmsg_type);
+                exit(EXIT_FAILURE);
             }
 
             *fd = *((int *)CMSG_DATA(cmsg));
-            printf("received fd %d\n", *fd);
+            LOGD("received fd %d\n", *fd);
         } else
             *fd = -1;
     } else {
         size = read(sock, buf, bufsize);
         if (size < 0) {
-            perror("read");
-            exit(1);
+            LOGE("read: %s", strerror(errno));
+            exit(EXIT_FAILURE);
         }
     }
     return size;
@@ -269,17 +273,17 @@ ssize_t write_fd(int sock, void *buf, ssize_t buflen, int fd)
         cmsg->cmsg_level = SOL_SOCKET;
         cmsg->cmsg_type = SCM_RIGHTS;
 
-        printf("passing fd %d\n", fd);
+        LOGD("passing fd %d\n", fd);
         *((int *)CMSG_DATA(cmsg)) = fd;
     } else {
         msg.msg_control = NULL;
         msg.msg_controllen = 0;
-        printf("not passing fd\n");
+        LOGE("not passing fd\n");
     }
 
     size = sendmsg(sock, &msg, 0);
 
     if (size < 0)
-        perror("sendmsg");
+        LOGE("sendmsg: %s", strerror(errno));
     return size;
 }

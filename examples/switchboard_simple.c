@@ -17,7 +17,7 @@
 #include <errno.h>
 
 #undef  NDEBUG
-#include <assert.h>
+#include <liblog/assure.h>
 
 /* The size of each buffer used for transfer in either direction */
 #ifndef BUFF_SZ

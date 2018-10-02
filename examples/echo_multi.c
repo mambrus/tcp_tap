@@ -17,7 +17,7 @@
 #include <tcp-tap/clientserver.h>
 
 #undef  NDEBUG
-#include <assert.h>
+#include <liblog/assure.h>
 
 #ifndef BUFF_SZ
 #define BUFF_SZ 0x400
@@ -42,7 +42,7 @@ void *myThread(void *inarg)
         rn = read(fd, buf, BUFF_SZ);
         printf(" %d: %d\n", tid, rn);
         sn = write(fd, buf, rn);
-        assert(rn == sn);
+        ASSERT(rn == sn);
     }
     printf("Thread [%d] finished session for fd [%d]\n", tid, fd);
     if (rn < 0)
@@ -65,7 +65,7 @@ int main(int argc, char **argv)
                getpid(), HOST_IP, PORT_NUMBER);
 
         fd = open_server(s);
-        assert(pthread_create
+        ASSERT(pthread_create
                (&t_thread, NULL, myThread, (void *)((intptr_t) fd)) == 0);
     }
 

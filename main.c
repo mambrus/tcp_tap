@@ -27,12 +27,14 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <errno.h>
 #include <tcp-tap/switchboard.h>
 #include "sig_mngr.h"
 #include "tcp-tap_config.h"
+#include "local.h"
 
 #undef  NDEBUG
-#include <assert.h>
+#include <liblog/assure.h>
 
 /* The maximum numbers of arguments in child we handle*/
 #define MAX_ARGS 50
@@ -57,29 +59,29 @@
 
 /* stdin,stdout,stderr for the managed sub-process. Used for debugging. Can
  * safely be rerouted to /dev/null */
-char stdin_name[PATH_MAX] = "/tmp/tcp_tap_stdin";
-char stdout_name[PATH_MAX] = "/tmp/tcp_tap_stdout";
-char stderr_name[PATH_MAX] = "/tmp/tcp_tap_stderr";
+char stdin_name[NAME_MAX] = "/tmp/tcp_tap_stdin";
+char stdout_name[NAME_MAX] = "/tmp/tcp_tap_stdout";
+char stderr_name[NAME_MAX] = "/tmp/tcp_tap_stderr";
 
 /* Some log-files */
-char parent_log_name[PATH_MAX] = "/tmp/tcp_tap_parent.log";
-char child_log_name[PATH_MAX] = "/tmp/tcp_tap_child.log";   //stderr for the child
+char parent_log_name[NAME_MAX] = "/tmp/tcp_tap_parent.log";
+char child_log_name[NAME_MAX] = "/tmp/tcp_tap_child.log";   //stderr for the child
 
 /* Name of the main process to run */
-char execute_bin[PATH_MAX] = "/bin/sh";
+char execute_bin[NAME_MAX] = "/bin/sh";
 
 /* Port number */
-char port[PATH_MAX] = "6969";
+char port[NAME_MAX] = "6969";
 
 /* FIFO(s) pre-name */
-char fifo_prename[PATH_MAX] = FIFO_DIR "/tcptap-swtchbrd_";
+char fifo_prename[NAME_MAX] = FIFO_DIR "/tcptap-swtchbrd_";
 
 /* listen at NIC bound to this name (human readable name or
  * IP-address). Aditionaly two special names:
  * @HOSTNAME@: Look up the primary interface bound to this name
  * @ANY@: Allow connection to any of the servers IF
  * */
-char nic_name[PATH_MAX] = "127.0.0.1";
+char nic_name[NAME_MAX] = "127.0.0.1";
 
 #define SETFROMENV( envvar, locvar, buf_max)                \
 {                                                           \
@@ -108,20 +110,21 @@ void *to_child(void *arg)
     int i, j, wfd;
     struct data_link *lp = (struct data_link *)arg;
 
-    assert((wfd = open(switchboard_fifo_names()->in_name, O_WRONLY)) >= 0);
+    ASSERT((wfd = open(switchboard_fifo_names()->in_name, O_WRONLY)) >= 0);
 
     while (1) {
         i = read(lp->read_from, lp->buffer, BUFF_SZ);
         if (i < 0) {
-            perror("Failed reading from pipe");
-            exit(-1);
+            LOGE("Failed reading from file-descriptor" __FILE__ ":"
+                 STR(__LINE__) ": ");
+            exit(EXIT_FAILURE);
         }
         j = write(lp->write_to, lp->buffer, i);
-        assert(i == j);
+        ASSERT(i == j);
         j = write(lp->log_to, lp->buffer, i);
-        assert(i == j);
+        ASSERT(i == j);
         j = write(wfd, lp->buffer, i);
-        assert(i == j);
+        ASSERT(i == j);
     }
     return NULL;
 }
@@ -132,20 +135,21 @@ void *to_parent(void *arg)
     int i, j, wfd;
     struct data_link *lp = (struct data_link *)arg;
 
-    assert((wfd = open(switchboard_fifo_names()->in_name, O_WRONLY)) >= 0);
+    ASSERT((wfd = open(switchboard_fifo_names()->in_name, O_WRONLY)) >= 0);
 
     while (1) {
         i = read(lp->read_from, lp->buffer, BUFF_SZ);
         if (i < 0) {
-            perror("Failed reading from pipe");
+            LOGE("Failed reading from pipe: " __FILE__ " +" STR(__LINE__)
+                 " ");
             exit(-1);
         }
         j = write(lp->write_to, lp->buffer, i);
-        assert(i == j);
+        ASSERT(i == j);
         j = write(lp->log_to, lp->buffer, i);
-        assert(i == j);
+        ASSERT(i == j);
         j = write(wfd, lp->buffer, i);
-        assert(i == j);
+        ASSERT(i == j);
     }
     return NULL;
 }
@@ -156,7 +160,7 @@ void *from_tcp(void *arg)
     int i, j, rfd;
     struct data_link *lp = (struct data_link *)arg;
 
-    assert((rfd = open(switchboard_fifo_names()->out_name, O_RDONLY)) >= 0);
+    ASSERT((rfd = open(switchboard_fifo_names()->out_name, O_RDONLY)) >= 0);
 
     while (1) {
         i = read(rfd, lp->buffer, BUFF_SZ);
@@ -166,13 +170,13 @@ void *from_tcp(void *arg)
            lp->buffer[i-1]='\n';
          */
         if (i < 0) {
-            perror("Failed reading from TCP");
+            LOGE("Failed reading from TCP: " __FILE__ " +" STR(__LINE__) " ");
             exit(-1);
         }
         j = write(lp->write_to, lp->buffer, i);
-        assert(i == j);
+        ASSERT(i == j);
         j = write(lp->log_to, lp->buffer, i);
-        assert(i == j);
+        ASSERT(i == j);
     }
     return NULL;
 }
@@ -183,7 +187,7 @@ int main(int argc, char **argv)
     int pipe_to_parent[2];
     int parent_log_fd, child_err_fd;
     int stdinlog_fd, stdoutlog_fd, stderrlog_fd;
-    char *exec_args[MAX_ARGS];
+    char *exec_args[MAX_ARGS] = { NULL };
     char buf_to_child[BUFF_SZ];
     char buf_to_parent[BUFF_SZ];
     int childpid, wpid, status;
@@ -193,28 +197,40 @@ int main(int argc, char **argv)
     pthread_t pt_from_tcp;
     struct data_link link_to_child;
     struct data_link link_to_parent;
+    int v = 0, size = argc - 1;
+    char *cmd;
 
-    assert(argc < MAX_ARGS);
+    ASSERT(argc < MAX_ARGS);
 
     /* We're passing sockes as arguments to threads as pass by value. Make
      * sure they fit */
-    assert(sizeof(void *) >= sizeof(int));
+    ASSERT(sizeof(void *) >= sizeof(int));
 
-    SETFROMENV(TCP_TAP_EXEC, execute_bin, PATH_MAX);
-    SETFROMENV(TCP_TAP_PORT, port, PATH_MAX);
-    SETFROMENV(TCP_TAP_NICNAME, nic_name, PATH_MAX);
-    SETFROMENV(TCP_TAP_LOG_STDIN, stdin_name, PATH_MAX);
-    SETFROMENV(TCP_TAP_LOG_STDOUT, stdout_name, PATH_MAX);
-    SETFROMENV(TCP_TAP_LOG_STDERR, stderr_name, PATH_MAX);
-    SETFROMENV(TCP_TAP_LOG_PARENT, parent_log_name, PATH_MAX);
-    SETFROMENV(TCP_TAP_LOG_CHILD, child_log_name, PATH_MAX);
-    SETFROMENV(TCP_TAP_FIFO_PRE_NAME, fifo_prename, PATH_MAX);
+    SETFROMENV(TCP_TAP_EXEC, execute_bin, NAME_MAX);
+    SETFROMENV(TCP_TAP_PORT, port, NAME_MAX);
+    SETFROMENV(TCP_TAP_NICNAME, nic_name, NAME_MAX);
+    SETFROMENV(TCP_TAP_LOG_STDIN, stdin_name, NAME_MAX);
+    SETFROMENV(TCP_TAP_LOG_STDOUT, stdout_name, NAME_MAX);
+    SETFROMENV(TCP_TAP_LOG_STDERR, stderr_name, NAME_MAX);
+    SETFROMENV(TCP_TAP_LOG_PARENT, parent_log_name, NAME_MAX);
+    SETFROMENV(TCP_TAP_LOG_CHILD, child_log_name, NAME_MAX);
+    SETFROMENV(TCP_TAP_FIFO_PRE_NAME, fifo_prename, NAME_MAX);
 
-    assert((stdinlog_fd = open(stdin_name, LFLAGS, LMODES)) > 0);
-    assert((stdoutlog_fd = open(stdout_name, LFLAGS, LMODES)) > 0);
-    assert((stderrlog_fd = open(stderr_name, LFLAGS, LMODES)) > 0);
-    assert((child_err_fd = open(child_log_name, LFLAGS, LMODES)) > 0);
-    assert((parent_log_fd = open(parent_log_name, LFLAGS, LMODES)) > 0);
+    ASSERT((stdinlog_fd = open(stdin_name, LFLAGS, LMODES)) > 0);
+    ASSERT((stdoutlog_fd = open(stdout_name, LFLAGS, LMODES)) > 0);
+    ASSERT((stderrlog_fd = open(stderr_name, LFLAGS, LMODES)) > 0);
+    ASSERT((child_err_fd = open(child_log_name, LFLAGS, LMODES)) > 0);
+    ASSERT((parent_log_fd = open(parent_log_name, LFLAGS, LMODES)) > 0);
+
+    cmd = (char *)malloc(v);
+    for (i = 1; i <= size; i++) {
+        cmd = (char *)realloc(cmd, (v + strlen(argv[i])));
+        strcat(cmd, argv[i]);
+        strcat(cmd, " ");
+    }
+    LOGI("tcp-tap starts [%d]: %s %s\n", argc, execute_bin, cmd);
+    LOGI("tcp-tap socket [%s:%d]\n", nic_name, port);
+    free(cmd);
 
     close(2);
     dup(stderrlog_fd);
@@ -222,13 +238,12 @@ int main(int argc, char **argv)
     pipe(pipe_to_child);
     pipe(pipe_to_parent);
 
-    memset(exec_args, 0, MAX_ARGS); /* Makes sure to null terminate arg-list */
     exec_args[0] = execute_bin;
     for (i = 1; i < argc; i++) {
         exec_args[i] = argv[i];
     }
 
-    assert((childpid = fork()) >= 0);
+    ASSERT((childpid = fork()) >= 0);
 
     if (childpid == 0) {
         /* Child excutes this */
@@ -239,7 +254,7 @@ int main(int argc, char **argv)
             k = write(child_err_fd, buf_to_child,
                       strnlen(buf_to_child, BUFF_SZ));
             if (i)
-                assert(k == j);
+                ASSERT(k == j);
         }
         sprintf(buf_to_child, "=========X=========X=========X=========X\n");
         write(child_err_fd, buf_to_child, strnlen(buf_to_child, BUFF_SZ));
@@ -265,8 +280,8 @@ int main(int argc, char **argv)
         execv(execute_bin, exec_args);
 
         /* Should never execute */
-        perror("exec error");
-        exit(-1);
+        LOGE("exec error:" __FILE__ " +" STR(__LINE__) " %s", strerror(errno));
+        exit(EXIT_FAILURE);
     }
 
     /* Parent executes this */
@@ -279,7 +294,7 @@ int main(int argc, char **argv)
         j = snprintf(buf_to_parent, BUFF_SZ, "%s\n", exec_args[i]);
         k = write(parent_log_fd, buf_to_parent,
                   strnlen(buf_to_parent, BUFF_SZ));
-        assert(k == j);
+        ASSERT(k == j);
     }
     sprintf(buf_to_parent, "=========Y=========Y=========Y=========Y\n");
     write(parent_log_fd, buf_to_parent, strnlen(buf_to_parent, BUFF_SZ));
@@ -297,15 +312,15 @@ int main(int argc, char **argv)
     link_to_parent.buffer = buf_to_parent;
 
     s = switchboard_init(atoi(port), nic_name, 1, fifo_prename);
-    assert(pthread_create(&pt_to_child, NULL, to_child, &link_to_child) == 0);
-    assert(pthread_create(&pt_to_parent, NULL, to_parent, &link_to_parent) ==
+    ASSERT(pthread_create(&pt_to_child, NULL, to_child, &link_to_child) == 0);
+    ASSERT(pthread_create(&pt_to_parent, NULL, to_parent, &link_to_parent) ==
            0);
-    assert(pthread_create(&pt_from_tcp, NULL, from_tcp, &link_to_child) == 0);
+    ASSERT(pthread_create(&pt_from_tcp, NULL, from_tcp, &link_to_child) == 0);
 
     do {
         //wpid=waitpid( /*childpid*/ /*0*/ -1, &status, WUNTRACED );
         wpid = waitpid(childpid, &status, WUNTRACED);
-        assert(wpid >= 0);
+        ASSERT(wpid >= 0);
     } while (!WIFEXITED(status) && !WIFSIGNALED(status));
 
     //while ( wait((int*)0) != childpid );

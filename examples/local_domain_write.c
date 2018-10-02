@@ -17,7 +17,7 @@
 #include <tcp-tap/clientserver.h>
 
 #undef  NDEBUG
-#include <assert.h>
+#include <liblog/assure.h>
 
 #ifndef BUFF_SZ
 #define BUFF_SZ 0x400
@@ -44,7 +44,7 @@ int main(int argc, char **argv)
             rn = read(0, buf, BUFF_SZ);
             fprintf(stderr, "Writing to socket\n");
             sn = write(s, buf, rn);
-            assert(rn == sn);
+            ASSERT(rn == sn);
         }
         if (rn < 0) {
             perror("read() failed: ");

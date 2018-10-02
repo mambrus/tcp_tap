@@ -28,12 +28,15 @@
 #include <sys/stat.h>
 #include <netdb.h>
 #include <stdlib.h>
+#include <errno.h>
 
-#undef  NDEBUG
-#include <assert.h>
 #include <tcp-tap/switchboard.h>
 #include <tcp-tap/clientserver.h>
 #include "tcp-tap_config.h"
+#include "local.h"
+
+#undef  NDEBUG
+#include <liblog/assure.h>
 
 /* The size of each buffer used for transfer in either direction */
 #ifndef BUFF_SZ
@@ -97,7 +100,7 @@ static void write_toall(const char *buf, int len)
     if (ss.ea) {
         while (ln) {
             sn = write(ln->fd, buf, len);
-            assert(len == sn);
+            ASSERT(len == sn);
             ln = ln->next;
         }
     }
@@ -120,23 +123,24 @@ static void *in_session_thread(void *inarg)
     struct serv_node *node = (struct serv_node *)inarg;
     int fdo, fd = node->fd;
     char buf[BUFF_SZ];
-    assert((fdo = open(switch_fifo.out_name, O_WRONLY)) >= 0);
+    ASSERT((fdo = open(switch_fifo.out_name, O_WRONLY)) >= 0);
 
-    fprintf(stderr, "Session [%d] connected.\n", node->id);
+    LOGI("Session [%d] connected.\n", node->id);
 
     for (rn = 1; rn > 0;) {
         rn = read(fd, buf, BUFF_SZ);
         if (rn > 0) {
             write_toall(buf, rn);
-            write(fdo, buf, rn);
-            assert(sn = rn);
+            sn = write(fdo, buf, rn);
+            ASSERT(sn == rn);
         }
     }
     if (rn == 0) {
-        fprintf(stderr, "Session [%d] disconnected normally...\n", node->id);
+        LOGI("Session [%d] disconnected normally...\n", node->id);
     } else {
-        perror("Session read error detected: ");
-        fprintf(stderr, "Session [%d] now disconnecting.\n", node->id);
+        LOGE("Session read error detected: " __FILE__ " +" STR(__LINE__) " %s",
+             strerror(errno));
+        LOGE("Session [%d] now disconnecting.\n", node->id);
     }
     close(fdo);                 /* Release resource */
     disconnect_servlet(node);
@@ -152,7 +156,7 @@ static void *handle_in_fifo_thread(void *arg)
     char buf[BUFF_SZ];
     int rn, fd;
 
-    assert((fd = open(switch_fifo.in_name, O_RDONLY)) >= 0);
+    ASSERT((fd = open(switch_fifo.in_name, O_RDONLY)) >= 0);
 
     while (1) {
         rn = read(fd, buf, BUFF_SZ);
@@ -167,10 +171,10 @@ static void *handle_in_fifo_thread(void *arg)
 static void disconnect_servlet(struct serv_node *node)
 {
     if (ss.n == 1) {
-        assert((node->prev == NULL) && (node->next == NULL));
+        ASSERT((node->prev == NULL) && (node->next == NULL));
     }
     if (node->prev == NULL && node->next == NULL) {
-        assert(ss.n == 1);
+        ASSERT(ss.n == 1);
         ss.serv_list = NULL;
     } else {
         if (node->prev) {
@@ -195,7 +199,7 @@ static void *connect_mngmt_thread(void *arg)
     int s = (long)arg;
 
     while (1) {
-        assert((fd = open_server(s)) >= 0);
+        ASSERT((fd = open_server(s)) >= 0);
         tn = malloc(sizeof(struct serv_node));
         ss.i++;
         tn->id = ss.i;
@@ -215,39 +219,39 @@ static void *connect_mngmt_thread(void *arg)
         (*lnp)->prev = lp;
 
         ss.n++;
-        assert(pthread_create(&tn->thread, NULL, in_session_thread, (void *)tn)
+        ASSERT(pthread_create(&tn->thread, NULL, in_session_thread, (void *)tn)
                == 0);
         //sleep(10);
     }
+
+	 /* Will never execute, just stop gcc from complaining*/
+	 return NULL;
 }
 
 int switchboard_init(int port, const char *host, int echo, const char *prename)
 {
     int s;
-    char tprename[PATH_MAX];
-    char tin_name[PATH_MAX];
-    char tout_name[PATH_MAX];
-    int slen;
+    char tprename[NAME_MAX];
+    char tin_name[NAME_MAX];
+    char tout_name[NAME_MAX];
     int pid = getpid();
 
-    memset(tprename, 0, PATH_MAX);
-    memset(tin_name, 0, PATH_MAX);
-    memset(tout_name, 0, PATH_MAX);
+    memset(tprename, 0, NAME_MAX);
+    memset(tin_name, 0, NAME_MAX);
+    memset(tout_name, 0, NAME_MAX);
 
     /* Constructing fifo-names (build-up) */
     if (prename == NULL) {
-        strncpy(tprename, FIFO_DIR "/fifo_switchboard", PATH_MAX);
+        strncpy(tprename, FIFO_DIR "/fifo_switchboard", NAME_MAX);
     } else {
-        strncpy(tprename, FIFO_DIR "/", PATH_MAX);
-        slen = strnlen(tprename, PATH_MAX);
-        strncpy(&tprename[slen], prename, PATH_MAX - slen);
+        strncpy(tprename, prename, strnlen(prename,NAME_MAX));
     }
 
-    snprintf(tin_name, PATH_MAX, "%s_%s_%d", tprename, "in", pid);
-    snprintf(tout_name, PATH_MAX, "%s_%s_%d", tprename, "out", pid);
+    snprintf(tin_name, NAME_MAX, "%s_%s_%d", tprename, "in", pid);
+    snprintf(tout_name, NAME_MAX, "%s_%s_%d", tprename, "out", pid);
 
-    switch_fifo.in_name = strndup(tin_name, PATH_MAX);
-    switch_fifo.out_name = strndup(tout_name, PATH_MAX);
+    switch_fifo.in_name = strndup(tin_name, NAME_MAX);
+    switch_fifo.out_name = strndup(tout_name, NAME_MAX);
 
     unlink(switch_fifo.in_name);
     unlink(switch_fifo.out_name);
@@ -257,10 +261,10 @@ int switchboard_init(int port, const char *host, int echo, const char *prename)
 
     s = init_switchboard(port, host, echo);
 
-    assert(pthread_create(&threads.to_swtch, NULL, handle_in_fifo_thread, NULL)
+    ASSERT(pthread_create(&threads.to_swtch, NULL, handle_in_fifo_thread, NULL)
            == 0);
 
-    assert(pthread_create
+    ASSERT(pthread_create
            (&threads.mngmt, NULL, connect_mngmt_thread,
             (void *)((intptr_t) s)) == 0);
     return s;
@@ -276,12 +280,12 @@ void switchboard_die(int s)
     if (ss.ea) {
         while (ln) {
             pthread_cancel(ln->thread);
-            assert(close(ln->fd) == 0);
+            ASSERT(close(ln->fd) == 0);
             ln = ln->next;
         }
     }
 
-    assert(close(s) == 0);
+    ASSERT(close(s) == 0);
     unlink(switch_fifo.in_name);
     unlink(switch_fifo.out_name);
     free(switch_fifo.in_name);
