@@ -131,8 +131,8 @@ endif (NOT USE_LIB_MQUEUE)
 ################################################################################
 # The version number.
 set (TCP-TAP_VERSION_MAJOR 0)
-set (TCP-TAP_VERSION_MINOR 1)
-set (TCP-TAP_VERSION_PATCH 0)
+set (TCP-TAP_VERSION_MINOR 6)
+set (TCP-TAP_VERSION_PATCH 3)
 
 # configure a header file to pass some of the CMake settings
 # to the source code
@@ -181,9 +181,17 @@ install(TARGETS tcp-tap atcptap sotcptap
 
 # Install package generation
 # --------------------------
-
-# Minimum pre-requisites for various cpack generators
-SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "Michael Ambrus")
+SET(CPACK_PACKAGE_CONTACT "Michael Ambrus")
+SET(CPACK_PACKAGE_VERSION_MAJOR ${TCP-TAP_VERSION_MAJOR})
+SET(CPACK_PACKAGE_VERSION_MINOR ${TCP-TAP_VERSION_MINOR})
+SET(CPACK_PACKAGE_VERSION_PATCH ${TCP-TAP_VERSION_PATCH})
+SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY
+	"TCP-TAP: A multitheaded/multi-sessioned\"tap\" to reside between two"
+	"processes stdio adding tcp network connectivity"
+	"LICENSE: GPL v2.0"
+	"Copyright (c) 2011 Michael Ambrus")
+SET(CPACK_RESOURCE_FILE_LICENSE
+	${PROJECT_SOURCE_DIR}/COPYING)
 
 set(SPECIFIED_CPACK
 	${SPECIFIED_CPACK}
