@@ -53,12 +53,12 @@ int init_server(int port, const char *hostname)
 
     if (!hostname ||
         !strncmp(hostname, "@HOSTNAME@", NAME_MAX) ||
-        !strncmp(hostname, "@ANY@", NAME_MAX)
-        )
+        !strncmp(hostname, "@ANY@", NAME_MAX))
         ASSERT(gethostname(name, NAME_MAX) == 0);
     else
         strncpy(name, hostname, NAME_MAX);
 
+    LOGD("Binding to hostname: [%s]\n", name);
     ASSERT((hp = gethostbyname(name)) != NULL);
 
     ASSERT((s = socket(AF_INET, SOCK_STREAM, 0)) >= 0);
@@ -118,6 +118,7 @@ int open_client(int port, const char *hostname)
     char name[NAME_MAX];
 
     strncpy(name, hostname, NAME_MAX);
+    LOGD("Connecting: [%s@%d]\n", name, port);
     ASSERT((hp = gethostbyname(name)) != NULL);
 
     ASSERT((s = socket(AF_INET, SOCK_STREAM, 0)) >= 0);
@@ -168,8 +169,7 @@ int named_socket(int isserver, const char *filename)
        Alternatively you can just do:
        size = SUN_LEN (&name);
      */
-    size = (offsetof(struct sockaddr_un, sun_path)
-            + strlen(name.sun_path));
+    size = (offsetof(struct sockaddr_un, sun_path) + strlen(name.sun_path));
 
     if (isserver) {
         if (bind(sock, (struct sockaddr *)&name, size) < 0) {

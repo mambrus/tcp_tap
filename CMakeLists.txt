@@ -132,7 +132,7 @@ endif (NOT USE_LIB_MQUEUE)
 # The version number.
 set (TCP-TAP_VERSION_MAJOR 0)
 set (TCP-TAP_VERSION_MINOR 6)
-set (TCP-TAP_VERSION_PATCH 3)
+set (TCP-TAP_VERSION_PATCH 4)
 
 # configure a header file to pass some of the CMake settings
 # to the source code
