@@ -132,7 +132,7 @@ endif (NOT USE_LIB_MQUEUE)
 # The version number.
 set (TCP-TAP_VERSION_MAJOR 0)
 set (TCP-TAP_VERSION_MINOR 6)
-set (TCP-TAP_VERSION_PATCH 4)
+set (TCP-TAP_VERSION_PATCH 5)
 
 # configure a header file to pass some of the CMake settings
 # to the source code
@@ -168,8 +168,11 @@ add_executable(tcp-tap ${TCP-TAP_SOURCE})
 target_link_libraries (tcp-tap atcptap ${EXTRA_LIBS})
 
 # Installation
-# Shells (ignore for now)
-#install(PROGRAMS ${PROJECT_BINARY_DIR}/gdb.tap.sh DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+
+# Shells:
+install(PROGRAMS ${PROJECT_SOURCE_DIR}/gdb.tap.sh DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
+	RENAME "gdb-tap" )
+	
 
 # Targets:
 install(TARGETS tcp-tap atcptap sotcptap

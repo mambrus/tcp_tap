@@ -9,7 +9,7 @@
 
 if [ -z $TAP_SH ]; then
 
-TAP_SH="tap.sh"
+TAP_SH="gdb-tap"
 
 # This script works as the basename command, except that it also
 # ripps away everything in the name before the next but last '.'
@@ -25,8 +25,8 @@ function tap() {
 if [ "$TAP_SH" == $( basename $0 ) ]; then
 	#Not sourced, do something with this.
 
-	export TCP_TAP_EXEC="$(which gdb)"
-	export TCP_TAP_PORT="8088"
+	export TCP_TAP_EXEC=${TCP_TAP_EXEC-"$(which gdb)"}
+	export TCP_TAP_PORT=${TCP_TAP_PORT-"7654"}
 	export TCP_TAP_LOG_STDIN="/dev/null"
 	export TCP_TAP_LOG_STDOUT="/dev/null"
 	export TCP_TAP_LOG_STDERR="/dev/null"
