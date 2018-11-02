@@ -51,6 +51,11 @@
 /* modes for all the logs */
 #define LMODES 0777
 
+/* File-descriptor for READ end of a pipe */
+#define PIPE_RD( P ) ( P[0] )
+/* File-descriptor for WRITE end of a pipe */
+#define PIPE_WR( P ) ( P[1] )
+
 /* Environment overloadable variables. Note: NEVER change these in code
  * unless bug is found as they are considered trusted and safe, and as they
  * will allow tcp_tap to start without any wrapping scripts (important when
@@ -191,8 +196,8 @@ static int isatty(int fd)
 
 int main(int argc, char **argv)
 {
-    int pipe_to_child[2];
-    int pipe_to_parent[2];
+    int pipe2child[2];
+    int pipe2parent[2];
     int parent_log_fd, child_err_fd;
     int stdinlog_fd, stdoutlog_fd, stderrlog_fd;
     char *exec_args[MAX_ARGS] = { NULL };
@@ -245,8 +250,8 @@ int main(int argc, char **argv)
     close(2);
     dup(stderrlog_fd);
 
-    pipe(pipe_to_child);
-    pipe(pipe_to_parent);
+    pipe(pipe2child);
+    pipe(pipe2parent);
 
     exec_args[0] = execute_bin;
     for (i = 1; i < argc; i++) {
@@ -276,18 +281,18 @@ int main(int argc, char **argv)
         write(child_err_fd, buf_to_child, strnlen(buf_to_child, BUFF_SZ));
 
         close(0);
-        dup(pipe_to_child[0]);
+        dup(PIPE_RD(pipe2child));
 
         close(1);
-        dup(pipe_to_parent[1]);
+        dup(PIPE_WR(pipe2parent));
 
         close(2);
-        dup(pipe_to_parent[1]);
+        dup(PIPE_WR(pipe2parent));
 
-        close(pipe_to_child[0]);
-        close(pipe_to_child[1]);
-        close(pipe_to_parent[0]);
-        close(pipe_to_parent[1]);
+        close(PIPE_RD(pipe2child));
+        close(PIPE_WR(pipe2child));
+        close(PIPE_RD(pipe2parent));
+        close(PIPE_WR(pipe2parent));
 
         LOGD("tcp-tap isatty child detect part 2 {0:%d} {1:%d} {2:%d}\n",
              isatty(0), isatty(1), isatty(2));
@@ -299,10 +304,9 @@ int main(int argc, char **argv)
     }
 
     /* Parent executes this */
-
     sig_mngr_init(childpid);
-    close(pipe_to_child[0]);
-    close(pipe_to_parent[1]);
+    close(PIPE_RD(pipe2child));
+    close(PIPE_WR(pipe2parent));
 
     k = sprintf(buf_to_parent, "Parent handles execution of:\n");
     k = write(parent_log_fd, buf_to_parent, strnlen(buf_to_parent, BUFF_SZ));
@@ -316,11 +320,11 @@ int main(int argc, char **argv)
     write(parent_log_fd, buf_to_parent, strnlen(buf_to_parent, BUFF_SZ));
 
     link_to_child.read_from = 0;
-    link_to_child.write_to = pipe_to_child[1];
+    link_to_child.write_to = PIPE_WR(pipe2child);
     link_to_child.log_to = stdinlog_fd;
     link_to_child.buffer = buf_to_child;
 
-    link_to_parent.read_from = pipe_to_parent[0];
+    link_to_parent.read_from = PIPE_RD(pipe2parent);
     link_to_parent.write_to = 1;
     link_to_parent.log_to = stdoutlog_fd;
     link_to_parent.buffer = buf_to_parent;
@@ -355,7 +359,7 @@ int main(int argc, char **argv)
     close(stdinlog_fd);
     close(stdoutlog_fd);
     close(stderrlog_fd);
-    close(pipe_to_child[1]);
-    close(pipe_to_parent[0]);
+    close(PIPE_WR(pipe2child));
+    close(PIPE_RD(pipe2parent));
     return 0;
 }
