@@ -181,6 +181,14 @@ void *from_tcp(void *arg)
     return NULL;
 }
 
+#ifndef HAVE_ISATTY_S
+static int isatty(int fd)
+{
+    struct winsize wsz;
+    return !__syscall(SYS_ioctl, fd, TIOCGWINSZ, &wsz);
+}
+#endif
+
 int main(int argc, char **argv)
 {
     int pipe_to_child[2];
@@ -228,6 +236,8 @@ int main(int argc, char **argv)
         strcat(cmd, argv[i]);
         strcat(cmd, " ");
     }
+    LOGD("tcp-tap isatty detect {0:%d} {1:%d} {2:%d}\n", isatty(0), isatty(1),
+         isatty(2));
     LOGI("tcp-tap starts [%d]: %s %s\n", argc, execute_bin, cmd);
     LOGI("tcp-tap socket [%s:%d]\n", nic_name, port);
     free(cmd);
@@ -247,6 +257,8 @@ int main(int argc, char **argv)
 
     if (childpid == 0) {
         /* Child excutes this */
+        LOGD("tcp-tap isatty child detect part 1 {0:%d} {1:%d} {2:%d}\n",
+             isatty(0), isatty(1), isatty(2));
         sprintf(buf_to_child, "Child will execute:\n");
         k = write(child_err_fd, buf_to_child, strnlen(buf_to_child, BUFF_SZ));
         for (i = 0; i < argc; i++) {
@@ -277,6 +289,8 @@ int main(int argc, char **argv)
         close(pipe_to_parent[0]);
         close(pipe_to_parent[1]);
 
+        LOGD("tcp-tap isatty child detect part 2 {0:%d} {1:%d} {2:%d}\n",
+             isatty(0), isatty(1), isatty(2));
         execv(execute_bin, exec_args);
 
         /* Should never execute */
@@ -287,6 +301,8 @@ int main(int argc, char **argv)
     /* Parent executes this */
 
     sig_mngr_init(childpid);
+    close(pipe_to_child[0]);
+    close(pipe_to_parent[1]);
 
     k = sprintf(buf_to_parent, "Parent handles execution of:\n");
     k = write(parent_log_fd, buf_to_parent, strnlen(buf_to_parent, BUFF_SZ));
@@ -301,12 +317,10 @@ int main(int argc, char **argv)
 
     link_to_child.read_from = 0;
     link_to_child.write_to = pipe_to_child[1];
-    close(pipe_to_child[0]);
     link_to_child.log_to = stdinlog_fd;
     link_to_child.buffer = buf_to_child;
 
     link_to_parent.read_from = pipe_to_parent[0];
-    close(pipe_to_parent[1]);
     link_to_parent.write_to = 1;
     link_to_parent.log_to = stdoutlog_fd;
     link_to_parent.buffer = buf_to_parent;

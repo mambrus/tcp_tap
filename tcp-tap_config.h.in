@@ -23,6 +23,7 @@
 /* Target system supports symbols */
 #cmakedefine HAVE_PTHREAD_CANCEL_S
 #cmakedefine HAVE_PTHREAD_CREATE_S
+#cmakedefine HAVE_ISATTY_S
 #cmakedefine HAVE_SIGUNUSED
 
 #if !defined(HAVE_PTHREAD_CANCEL_S) && !defined(HAVE_PTHREAD_CANCEL_S)
