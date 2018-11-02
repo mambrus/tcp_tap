@@ -120,8 +120,8 @@ void *to_child(void *arg)
     while (1) {
         i = read(lp->read_from, lp->buffer, BUFF_SZ);
         if (i < 0) {
-            LOGE("Failed reading from file-descriptor" __FILE__ ":"
-                 STR(__LINE__) ": ");
+            LOGE("Failed reading from fd=[%d] in %s: " __FILE__ ":"
+                 STR(__LINE__), __func__, lp->read_from);
             exit(EXIT_FAILURE);
         }
         j = write(lp->write_to, lp->buffer, i);
@@ -145,8 +145,8 @@ void *to_parent(void *arg)
     while (1) {
         i = read(lp->read_from, lp->buffer, BUFF_SZ);
         if (i < 0) {
-            LOGE("Failed reading from pipe: " __FILE__ " +" STR(__LINE__)
-                 " ");
+            LOGE("Failed reading from fd=[%d] in %s: " __FILE__ ":"
+                 STR(__LINE__), __func__, lp->read_from);
             exit(-1);
         }
         j = write(lp->write_to, lp->buffer, i);
@@ -175,7 +175,8 @@ void *from_tcp(void *arg)
            lp->buffer[i-1]='\n';
          */
         if (i < 0) {
-            LOGE("Failed reading from TCP: " __FILE__ " +" STR(__LINE__) " ");
+            LOGE("Failed reading from fd=[%d] in %s: " __FILE__ ":"
+                 STR(__LINE__), __func__, rfd);
             exit(-1);
         }
         j = write(lp->write_to, lp->buffer, i);
