@@ -186,6 +186,7 @@ int main(int argc, char **argv)
     int pipe2parent[2];
     char buf_to_child[BUFF_SZ];
     char buf_to_parent[BUFF_SZ];
+    char buf_from_tcp[BUFF_SZ];
     char *exec_args[MAX_ARGS] = { NULL };
     int childpid, wpid, status;
     int i, s;
@@ -194,6 +195,7 @@ int main(int argc, char **argv)
     pthread_t pt_from_tcp;
     struct data_link link_to_child;
     struct data_link link_to_parent;
+    struct data_link link_from_tcp;
     int v = 0, size = argc - 1;
     char *cmd;
     struct env *env;
@@ -289,6 +291,10 @@ int main(int argc, char **argv)
     link_to_child.write_to = PIPE_WR(pipe2child);
     link_to_child.buffer = buf_to_child;
 
+    link_from_tcp.read_from = 0xDEAD;
+    link_from_tcp.write_to = PIPE_WR(pipe2child);
+    link_from_tcp.buffer = buf_from_tcp;
+
     link_to_parent.read_from = PIPE_RD(pipe2parent);
     link_to_parent.write_to = 1;
     link_to_parent.buffer = buf_to_parent;
@@ -298,7 +304,7 @@ int main(int argc, char **argv)
            == 0);
     ASSERT(pthread_create
            (&pt_to_parent, NULL, thread_to_parent, &link_to_parent) == 0);
-    ASSERT(pthread_create(&pt_from_tcp, NULL, thread_from_tcps, &link_to_child)
+    ASSERT(pthread_create(&pt_from_tcp, NULL, thread_from_tcps, &link_from_tcp)
            == 0);
 
     do {
