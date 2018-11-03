@@ -76,7 +76,7 @@ static void tty_raw_mode(int fd);
 /* Threads handing shuffling of data */
 
 /* Transfers stdin and sends to child (and TCP sockes, if any) */
-void *to_child(void *arg)
+void *thread_to_child(void *arg)
 {
     int i, j, wfd;
     struct data_link *lp = (struct data_link *)arg;
@@ -103,7 +103,7 @@ void *to_child(void *arg)
 }
 
 /* Transfers output from child and sends to stdout(and TCP socket, if any) */
-void *to_parent(void *arg)
+void *thread_to_parent(void *arg)
 {
     int i, j, wfd;
     struct data_link *lp = (struct data_link *)arg;
@@ -127,8 +127,8 @@ void *to_parent(void *arg)
     return NULL;
 }
 
-/* Transfers from TCP and sends to child */
-void *from_tcp(void *arg)
+/* Transfers from any TCP session (via pipe) and sends to child */
+void *thread_from_tcps(void *arg)
 {
     int i, j, rfd;
     struct data_link *lp = (struct data_link *)arg;
@@ -294,10 +294,12 @@ int main(int argc, char **argv)
     link_to_parent.buffer = buf_to_parent;
 
     s = switchboard_init(atoi(env->port), env->nic_name, 1, env->fifo_prename);
-    ASSERT(pthread_create(&pt_to_child, NULL, to_child, &link_to_child) == 0);
-    ASSERT(pthread_create(&pt_to_parent, NULL, to_parent, &link_to_parent) ==
-           0);
-    ASSERT(pthread_create(&pt_from_tcp, NULL, from_tcp, &link_to_child) == 0);
+    ASSERT(pthread_create(&pt_to_child, NULL, thread_to_child, &link_to_child)
+           == 0);
+    ASSERT(pthread_create
+           (&pt_to_parent, NULL, thread_to_parent, &link_to_parent) == 0);
+    ASSERT(pthread_create(&pt_from_tcp, NULL, thread_from_tcps, &link_to_child)
+           == 0);
 
     do {
         //wpid=waitpid( /*childpid*/ /*0*/ -1, &status, WUNTRACED );
