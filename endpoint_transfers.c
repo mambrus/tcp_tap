@@ -50,7 +50,9 @@
 #endif
 
 /* Default log ability for workers operating */
-#define ENABLE_LOG_DFLT 0
+#define ENABLE_LOG_TO_CHILD_DFLT   1
+#define ENABLE_LOG_TO_PARENT_DFLT  0
+#define ENABLE_LOG_FROM_TCPS_DFLT  0
 
 /* Transfers stdin and sends to child (and TCP sockes, if any) */
 void *thread_to_child(void *arg)
@@ -59,6 +61,7 @@ void *thread_to_child(void *arg)
     struct data_link *lp = (struct data_link *)arg;
     char *pname = switchboard_fifo_names()->in_name;
 
+    lp->enable_log = ENABLE_LOG_TO_CHILD_DFLT;
     lp->worker_name = __func__;
     LOGD("Worker [%s] starting, write pipe: %s\n", lp->worker_name, pname);
 
@@ -67,6 +70,7 @@ void *thread_to_child(void *arg)
          lp->worker_name, lp->read_from, lp->write_to, wfd);
 
     while (1) {
+        memset(lp->buffer, 0, LINK_BUFF_SZ);
         i = read(lp->read_from, lp->buffer, LINK_BUFF_SZ);
         if (i < 0) {
             LOGE("Failed reading from fd=[%d] in %s: " __FILE__ ":"
@@ -74,7 +78,7 @@ void *thread_to_child(void *arg)
             exit(EXIT_FAILURE);
         }
         if (lp->enable_log)
-            LOGV("R(%s): [%s]\n", __func__, lp->buffer);
+            LOGD("R(%s[%d]): [%s]\n", __func__, i, lp->buffer);
 
         j = write(lp->write_to, lp->buffer, i);
         ASSERT(i == j);
@@ -91,6 +95,7 @@ void *thread_to_parent(void *arg)
     struct data_link *lp = (struct data_link *)arg;
     char *pname = switchboard_fifo_names()->in_name;
 
+    lp->enable_log = ENABLE_LOG_TO_PARENT_DFLT;
     lp->worker_name = __func__;
     LOGD("Worker [%s] starting, write pipe: %s\n", lp->worker_name, pname);
 
@@ -99,6 +104,7 @@ void *thread_to_parent(void *arg)
          lp->worker_name, lp->read_from, lp->write_to, wfd);
 
     while (1) {
+        memset(lp->buffer, 0, LINK_BUFF_SZ);
         i = read(lp->read_from, lp->buffer, LINK_BUFF_SZ);
         if (i < 0) {
             LOGE("Failed reading from fd=[%d] in %s: " __FILE__ ":"
@@ -106,7 +112,7 @@ void *thread_to_parent(void *arg)
             exit(-1);
         }
         if (lp->enable_log)
-            LOGV("R(%s): [%s]\n", __func__, lp->buffer);
+            LOGD("R(%s[%d]): [%s]\n", __func__, i, lp->buffer);
 
         j = write(lp->write_to, lp->buffer, i);
         ASSERT(i == j);
@@ -123,6 +129,7 @@ void *thread_from_tcps(void *arg)
     struct data_link *lp = (struct data_link *)arg;
     char *pname = switchboard_fifo_names()->out_name;
 
+    lp->enable_log = ENABLE_LOG_FROM_TCPS_DFLT;
     lp->worker_name = __func__;
     LOGD("Worker [%s] starting, read pipe: %s\n", lp->worker_name, pname);
 
@@ -130,6 +137,7 @@ void *thread_from_tcps(void *arg)
     LOGD("Worker [%s] fds: (%d->%d)\n", lp->worker_name, rfd, lp->write_to);
 
     while (1) {
+        memset(lp->buffer, 0, LINK_BUFF_SZ);
         i = read(rfd, lp->buffer, LINK_BUFF_SZ);
         /*
            i--;
@@ -142,7 +150,7 @@ void *thread_from_tcps(void *arg)
             exit(-1);
         }
         if (lp->enable_log)
-            LOGV("R(%s): [%s]\n", __func__, lp->buffer);
+            LOGD("R(%s[%d]): [%s]\n", __func__, i, lp->buffer);
 
         j = write(lp->write_to, lp->buffer, i);
         ASSERT(i == j);
@@ -162,7 +170,6 @@ struct link *link_create(void *(*worker) (void *), int fd_from, int fd_to)
 
     tlink->data_link->read_from = fd_from;
     tlink->data_link->write_to = fd_to;
-    tlink->data_link->enable_log = ENABLE_LOG_DFLT;
     LOGD("%s: %d->%d\n", __func__, tlink->data_link->read_from,
          tlink->data_link->write_to);
 
