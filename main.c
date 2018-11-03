@@ -50,6 +50,10 @@
 /* File-descriptor for WRITE end of a pipe */
 #define PIPE_WR( P ) ( P[1] )
 
+/* Syslog includes stderr or not */
+#define INCLUDE_STDERR 1
+#define NO_STDERR 0
+
 /* Environment overloadable variables. Note: NEVER change these in code
  * unless bug is found as they are considered trusted and safe, and as they
  * will allow tcp_tap to start without any wrapping scripts (important when
@@ -226,11 +230,15 @@ int main(int argc, char **argv)
     int v = 0, size = argc - 1;
     char *cmd;
 
+    log_syslog_config(INCLUDE_STDERR);  /* (Re-) configure sys-log */
+    log_set_process_name(argv[0]);
+
     ASSERT(argc < MAX_ARGS);
 
     /* We're passing sockes as arguments to threads as pass by value. Make
      * sure they fit */
     ASSERT(sizeof(void *) >= sizeof(int));
+    log_syslog_config(NO_STDERR);   /* (Re-) configure sys-log */
 
     /* Back-up tty settings */
     for (i = 0; i < 3; i++) {
@@ -249,10 +257,10 @@ int main(int argc, char **argv)
         strcat(cmd, argv[i]);
         strcat(cmd, " ");
     }
-    LOGD("tcp-tap isatty detect {0:%d} {1:%d} {2:%d}\n", isatty(0), isatty(1),
+    LOGD("PARENT: isatty detect {0:%d} {1:%d} {2:%d}\n", isatty(0), isatty(1),
          isatty(2));
-    LOGI("tcp-tap starts [%d]: %s %s\n", argc, execute_bin, cmd);
-    LOGI("tcp-tap socket [%s:%d]\n", nic_name, port);
+    LOGI("PARENT: starts [%d]: %s %s\n", argc, execute_bin, cmd);
+    LOGI("PARENT: socket [%s:%d]\n", nic_name, port);
     free(cmd);
 
     pipe(pipe2child);
@@ -288,7 +296,7 @@ int main(int argc, char **argv)
         close(PIPE_RD(pipe2parent));
         close(PIPE_WR(pipe2parent));
 
-        LOGD("tcp-tap isatty child detect part 2 {0:%d} {1:%d} {2:%d}\n",
+        LOGD("CHILD: isatty detect part 2 {0:%d} {1:%d} {2:%d}\n",
              isatty(0), isatty(1), isatty(2));
         execv(execute_bin, exec_args);
 
