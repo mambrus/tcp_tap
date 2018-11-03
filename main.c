@@ -127,10 +127,10 @@ int main(int argc, char **argv)
         strcat(cmd, argv[i]);
         strcat(cmd, " ");
     }
+    LOGI("PARENT: starts [%s]:%d [%s]\n", env->execute_bin, argc, cmd);
+    LOGI("PARENT: socket [%s:%s]\n", env->nic_name, env->port);
     LOGD("PARENT: isatty detect {0:%d} {1:%d} {2:%d}\n", isatty(0), isatty(1),
          isatty(2));
-    LOGI("PARENT: starts [%d]: %s %s\n", argc, env->execute_bin, cmd);
-    LOGI("PARENT: socket [%s:%d]\n", env->nic_name, env->port);
     free(cmd);
 
     pipe(pipe2child);
