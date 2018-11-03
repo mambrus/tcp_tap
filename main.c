@@ -45,13 +45,6 @@
 #define BUFF_SZ 0x400
 #endif
 
-/* flags for all the logs*/
-//#define LFLAGS ( O_WRONLY | O_APPEND | O_CREAT /*| O_CLOEXEC |*/ O_SYNC )
-#define LFLAGS ( O_WRONLY | O_APPEND | O_CREAT | O_SYNC )
-
-/* modes for all the logs */
-#define LMODES 0777
-
 /* File-descriptor for READ end of a pipe */
 #define PIPE_RD( P ) ( P[0] )
 /* File-descriptor for WRITE end of a pipe */
@@ -62,16 +55,6 @@
  * will allow tcp_tap to start without any wrapping scripts (important when
  * debugging and testing). Always use the corresponding environment variable
  * */
-
-/* stdin,stdout,stderr for the managed sub-process. Used for debugging. Can
- * safely be rerouted to /dev/null */
-char stdin_name[NAME_MAX] = "/tmp/tcp_tap_stdin";
-char stdout_name[NAME_MAX] = "/tmp/tcp_tap_stdout";
-char stderr_name[NAME_MAX] = "/tmp/tcp_tap_stderr";
-
-/* Some log-files */
-char parent_log_name[NAME_MAX] = "/tmp/tcp_tap_parent.log";
-char child_log_name[NAME_MAX] = "/tmp/tcp_tap_child.log";   //stderr for the child
 
 /* Name of the main process to run */
 char execute_bin[NAME_MAX] = "/bin/sh";
@@ -113,7 +96,6 @@ struct {
 struct data_link {
     int read_from;
     int write_to;
-    int log_to;
     char *buffer;
 };
 
@@ -133,17 +115,15 @@ void *to_child(void *arg)
         tty_raw_mode(lp->read_from);
 
     while (1) {
-        memset(lp->buffer, 0, BUFF_SZ);
         i = read(lp->read_from, lp->buffer, BUFF_SZ);
         if (i < 0) {
             LOGE("Failed reading from fd=[%d] in %s: " __FILE__ ":"
                  STR(__LINE__), __func__, lp->read_from);
             exit(EXIT_FAILURE);
         }
-        LOGV("R:[%s]\n", lp->buffer);
+        LOGV("R(%s): [%s]\n", __func__, lp->buffer);
+
         j = write(lp->write_to, lp->buffer, i);
-        ASSERT(i == j);
-        j = write(lp->log_to, lp->buffer, i);
         ASSERT(i == j);
         j = write(wfd, lp->buffer, i);
         ASSERT(i == j);
@@ -160,17 +140,15 @@ void *to_parent(void *arg)
     ASSERT((wfd = open(switchboard_fifo_names()->in_name, O_WRONLY)) >= 0);
 
     while (1) {
-        //memset(lp->buffer, 0, BUFF_SZ);
         i = read(lp->read_from, lp->buffer, BUFF_SZ);
         if (i < 0) {
             LOGE("Failed reading from fd=[%d] in %s: " __FILE__ ":"
                  STR(__LINE__), __func__, lp->read_from);
             exit(-1);
         }
-        //LOGV("R:[%s]\n", lp->buffer);
+        LOGV("R(%s): [%s]\n", __func__, lp->buffer);
+
         j = write(lp->write_to, lp->buffer, i);
-        ASSERT(i == j);
-        j = write(lp->log_to, lp->buffer, i);
         ASSERT(i == j);
         j = write(wfd, lp->buffer, i);
         ASSERT(i == j);
@@ -198,9 +176,9 @@ void *from_tcp(void *arg)
                  STR(__LINE__), __func__, rfd);
             exit(-1);
         }
+        LOGV("R(%s): [%s]\n", __func__, lp->buffer);
+
         j = write(lp->write_to, lp->buffer, i);
-        ASSERT(i == j);
-        j = write(lp->log_to, lp->buffer, i);
         ASSERT(i == j);
     }
     return NULL;
@@ -235,13 +213,11 @@ int main(int argc, char **argv)
 {
     int pipe2child[2];
     int pipe2parent[2];
-    int parent_log_fd, child_err_fd;
-    int stdinlog_fd, stdoutlog_fd, stderrlog_fd;
-    char *exec_args[MAX_ARGS] = { NULL };
     char buf_to_child[BUFF_SZ];
     char buf_to_parent[BUFF_SZ];
+    char *exec_args[MAX_ARGS] = { NULL };
     int childpid, wpid, status;
-    int i, j, k, s;
+    int i, s;
     pthread_t pt_to_child;
     pthread_t pt_to_parent;
     pthread_t pt_from_tcp;
@@ -265,18 +241,7 @@ int main(int argc, char **argv)
     SETFROMENV(TCP_TAP_EXEC, execute_bin, NAME_MAX);
     SETFROMENV(TCP_TAP_PORT, port, NAME_MAX);
     SETFROMENV(TCP_TAP_NICNAME, nic_name, NAME_MAX);
-    SETFROMENV(TCP_TAP_LOG_STDIN, stdin_name, NAME_MAX);
-    SETFROMENV(TCP_TAP_LOG_STDOUT, stdout_name, NAME_MAX);
-    SETFROMENV(TCP_TAP_LOG_STDERR, stderr_name, NAME_MAX);
-    SETFROMENV(TCP_TAP_LOG_PARENT, parent_log_name, NAME_MAX);
-    SETFROMENV(TCP_TAP_LOG_CHILD, child_log_name, NAME_MAX);
     SETFROMENV(TCP_TAP_FIFO_PRE_NAME, fifo_prename, NAME_MAX);
-
-    ASSERT((stdinlog_fd = open(stdin_name, LFLAGS, LMODES)) > 0);
-    ASSERT((stdoutlog_fd = open(stdout_name, LFLAGS, LMODES)) > 0);
-    ASSERT((stderrlog_fd = open(stderr_name, LFLAGS, LMODES)) > 0);
-    ASSERT((child_err_fd = open(child_log_name, LFLAGS, LMODES)) > 0);
-    ASSERT((parent_log_fd = open(parent_log_name, LFLAGS, LMODES)) > 0);
 
     cmd = (char *)malloc(v);
     for (i = 1; i <= size; i++) {
@@ -290,9 +255,6 @@ int main(int argc, char **argv)
     LOGI("tcp-tap socket [%s:%d]\n", nic_name, port);
     free(cmd);
 
-    close(2);
-    dup(stderrlog_fd);
-
     pipe(pipe2child);
     pipe(pipe2parent);
 
@@ -305,23 +267,12 @@ int main(int argc, char **argv)
 
     if (childpid == 0) {
         /* Child excutes this */
-        LOGD("tcp-tap isatty child detect part 1 {0:%d} {1:%d} {2:%d}\n",
+        LOGD("CHILD: isatty detect part 1 {0:%d} {1:%d} {2:%d}\n",
              isatty(0), isatty(1), isatty(2));
-        sprintf(buf_to_child, "Child will execute:\n");
-        k = write(child_err_fd, buf_to_child, strnlen(buf_to_child, BUFF_SZ));
+        LOGI("CHILD: Will execute:\n");
         for (i = 0; i < argc; i++) {
-            j = snprintf(buf_to_child, BUFF_SZ, "%s\n", exec_args[i]);
-            k = write(child_err_fd, buf_to_child,
-                      strnlen(buf_to_child, BUFF_SZ));
-            if (i)
-                ASSERT(k == j);
+            LOGI("   [%s]\n", exec_args[i]);
         }
-        sprintf(buf_to_child, "=========X=========X=========X=========X\n");
-        write(child_err_fd, buf_to_child, strnlen(buf_to_child, BUFF_SZ));
-        sprintf(buf_to_child, "This is now stderr:\n");
-        k = write(child_err_fd, buf_to_child, strnlen(buf_to_child, BUFF_SZ));
-        sprintf(buf_to_child, "=========X=========X=========X=========X\n");
-        write(child_err_fd, buf_to_child, strnlen(buf_to_child, BUFF_SZ));
 
         close(0);
         dup(PIPE_RD(pipe2child));
@@ -351,25 +302,17 @@ int main(int argc, char **argv)
     close(PIPE_RD(pipe2child));
     close(PIPE_WR(pipe2parent));
 
-    k = sprintf(buf_to_parent, "Parent handles execution of:\n");
-    k = write(parent_log_fd, buf_to_parent, strnlen(buf_to_parent, BUFF_SZ));
+    LOGI("PARENT: handle execution of:\n");
     for (i = 0; i < argc; i++) {
-        j = snprintf(buf_to_parent, BUFF_SZ, "%s\n", exec_args[i]);
-        k = write(parent_log_fd, buf_to_parent,
-                  strnlen(buf_to_parent, BUFF_SZ));
-        ASSERT(k == j);
+        LOGI("   [%s]\n", exec_args[i]);
     }
-    sprintf(buf_to_parent, "=========Y=========Y=========Y=========Y\n");
-    write(parent_log_fd, buf_to_parent, strnlen(buf_to_parent, BUFF_SZ));
 
     link_to_child.read_from = 0;
     link_to_child.write_to = PIPE_WR(pipe2child);
-    link_to_child.log_to = stdinlog_fd;
     link_to_child.buffer = buf_to_child;
 
     link_to_parent.read_from = PIPE_RD(pipe2parent);
     link_to_parent.write_to = 1;
-    link_to_parent.log_to = stdoutlog_fd;
     link_to_parent.buffer = buf_to_parent;
 
     s = switchboard_init(atoi(port), nic_name, 1, fifo_prename);
@@ -381,27 +324,20 @@ int main(int argc, char **argv)
     do {
         //wpid=waitpid( /*childpid*/ /*0*/ -1, &status, WUNTRACED );
         wpid = waitpid(childpid, &status, WUNTRACED);
+        LOGD("CHILD: Wants to exit on signal %d\n", wpid);
         ASSERT(wpid >= 0);
     } while (!WIFEXITED(status) && !WIFSIGNALED(status));
+    LOGD("CHILD: Exits on signal %d\n", wpid);
 
     //while ( wait((int*)0) != childpid );
 
-    sprintf(buf_to_parent, "tcp_tap parent exiting. Thanks for the fish...\n");
-    write(parent_log_fd, buf_to_parent, strnlen(buf_to_parent, BUFF_SZ));
+    LOGD("PARENT: Is exiting.\n");
 
     pthread_cancel(pt_from_tcp);
     switchboard_die(s);
     pthread_cancel(pt_to_parent);
     pthread_cancel(pt_to_child);
 
-    sprintf(buf_to_child, "tcp_tap child has exitited. Bye bye!\n");
-    write(child_err_fd, buf_to_child, strnlen(buf_to_child, BUFF_SZ));
-
-    close(parent_log_fd);
-    close(child_err_fd);
-    close(stdinlog_fd);
-    close(stdoutlog_fd);
-    close(stderrlog_fd);
     close(PIPE_WR(pipe2child));
     close(PIPE_RD(pipe2parent));
 
