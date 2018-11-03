@@ -196,7 +196,7 @@ int main(int argc, char **argv)
     struct data_link link_to_parent;
     int v = 0, size = argc - 1;
     char *cmd;
-    struct env* env;
+    struct env *env;
 
     log_syslog_config(INCLUDE_STDERR);  /* (Re-) configure sys-log */
     log_set_process_name(argv[0]);
