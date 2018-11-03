@@ -331,7 +331,7 @@ int main(int argc, char **argv)
     pthread_cancel(pt_from_tcp);
     switchboard_die(s);
     pthread_cancel(pt_to_parent);
-    pthread_cancel(pt_from_tcp);
+    pthread_cancel(pt_to_child);
 
     sprintf(buf_to_child, "tcp_tap child has exitited. Bye bye!\n");
     write(child_err_fd, buf_to_child, strnlen(buf_to_child, BUFF_SZ));
