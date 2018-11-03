@@ -40,11 +40,6 @@
 /* The maximum numbers of arguments in child we handle*/
 #define MAX_ARGS 50
 
-/* The size of each buffer used for transfer in either direction */
-#ifndef BUFF_SZ
-#define BUFF_SZ 0x400
-#endif
-
 /* File-descriptor for READ end of a pipe */
 #define PIPE_RD( P ) ( P[0] )
 /* File-descriptor for WRITE end of a pipe */
@@ -53,6 +48,9 @@
 /* Syslog includes stderr or not */
 #define INCLUDE_STDERR 1
 #define NO_STDERR 0
+
+/* Link-workers */
+struct link *worker[3];
 
 /* TTY attibutes to be saved and resored upon entry, exit */
 struct {
@@ -63,97 +61,8 @@ struct {
      .tampered = 0}
 };
 
-/* Transfer types */
-struct data_link {
-    int read_from;
-    int write_to;
-    char *buffer;
-};
-
 /* local functions */
 static void tty_raw_mode(int fd);
-
-/* Threads handing shuffling of data */
-
-/* Transfers stdin and sends to child (and TCP sockes, if any) */
-void *thread_to_child(void *arg)
-{
-    int i, j, wfd;
-    struct data_link *lp = (struct data_link *)arg;
-
-    ASSERT((wfd = open(switchboard_fifo_names()->in_name, O_WRONLY)) >= 0);
-    if (isatty(lp->read_from))
-        tty_raw_mode(lp->read_from);
-
-    while (1) {
-        i = read(lp->read_from, lp->buffer, BUFF_SZ);
-        if (i < 0) {
-            LOGE("Failed reading from fd=[%d] in %s: " __FILE__ ":"
-                 STR(__LINE__), __func__, lp->read_from);
-            exit(EXIT_FAILURE);
-        }
-        LOGV("R(%s): [%s]\n", __func__, lp->buffer);
-
-        j = write(lp->write_to, lp->buffer, i);
-        ASSERT(i == j);
-        j = write(wfd, lp->buffer, i);
-        ASSERT(i == j);
-    }
-    return NULL;
-}
-
-/* Transfers output from child and sends to stdout(and TCP socket, if any) */
-void *thread_to_parent(void *arg)
-{
-    int i, j, wfd;
-    struct data_link *lp = (struct data_link *)arg;
-
-    ASSERT((wfd = open(switchboard_fifo_names()->in_name, O_WRONLY)) >= 0);
-
-    while (1) {
-        i = read(lp->read_from, lp->buffer, BUFF_SZ);
-        if (i < 0) {
-            LOGE("Failed reading from fd=[%d] in %s: " __FILE__ ":"
-                 STR(__LINE__), __func__, lp->read_from);
-            exit(-1);
-        }
-        LOGV("R(%s): [%s]\n", __func__, lp->buffer);
-
-        j = write(lp->write_to, lp->buffer, i);
-        ASSERT(i == j);
-        j = write(wfd, lp->buffer, i);
-        ASSERT(i == j);
-    }
-    return NULL;
-}
-
-/* Transfers from any TCP session (via pipe) and sends to child */
-void *thread_from_tcps(void *arg)
-{
-    int i, j, rfd;
-    struct data_link *lp = (struct data_link *)arg;
-
-    ASSERT((rfd = open(switchboard_fifo_names()->out_name, O_RDONLY)) >= 0);
-
-    while (1) {
-        i = read(rfd, lp->buffer, BUFF_SZ);
-        /*
-           i--;
-           lp->buffer[i]=0;
-           lp->buffer[i-1]='\n';
-         */
-        if (i < 0) {
-            LOGE("Failed reading from fd=[%d] in %s: " __FILE__ ":"
-                 STR(__LINE__), __func__, rfd);
-            exit(-1);
-        }
-        LOGV("R(%s): [%s]\n", __func__, lp->buffer);
-
-        j = write(lp->write_to, lp->buffer, i);
-        ASSERT(i == j);
-    }
-    return NULL;
-}
 
 static void tty_raw_mode(int fd)
 {
@@ -184,18 +93,9 @@ int main(int argc, char **argv)
 {
     int pipe2child[2];
     int pipe2parent[2];
-    char buf_to_child[BUFF_SZ];
-    char buf_to_parent[BUFF_SZ];
-    char buf_from_tcp[BUFF_SZ];
     char *exec_args[MAX_ARGS] = { NULL };
     int childpid, wpid, status;
     int i, s;
-    pthread_t pt_to_child;
-    pthread_t pt_to_parent;
-    pthread_t pt_from_tcp;
-    struct data_link link_to_child;
-    struct data_link link_to_parent;
-    struct data_link link_from_tcp;
     int v = 0, size = argc - 1;
     char *cmd;
     struct env *env;
@@ -210,14 +110,16 @@ int main(int argc, char **argv)
     ASSERT(sizeof(void *) >= sizeof(int));
     log_syslog_config(NO_STDERR);   /* (Re-) configure sys-log */
 
+    env_int();
+    env = env_get();
+
     /* Back-up tty settings */
     for (i = 0; i < 3; i++) {
         if (isatty(i))
             tcgetattr(i, &(tty[i].tty_attr));
     }
-
-    env_int();
-    env = env_get();
+    if (isatty(0))
+        tty_raw_mode(0);
 
     cmd = (char *)malloc(v);
     for (i = 1; i <= size; i++) {
@@ -287,42 +189,28 @@ int main(int argc, char **argv)
         LOGI("   [%s]\n", exec_args[i]);
     }
 
-    link_to_child.read_from = 0;
-    link_to_child.write_to = PIPE_WR(pipe2child);
-    link_to_child.buffer = buf_to_child;
-
-    link_from_tcp.read_from = 0xDEAD;
-    link_from_tcp.write_to = PIPE_WR(pipe2child);
-    link_from_tcp.buffer = buf_from_tcp;
-
-    link_to_parent.read_from = PIPE_RD(pipe2parent);
-    link_to_parent.write_to = 1;
-    link_to_parent.buffer = buf_to_parent;
-
     s = switchboard_init(atoi(env->port), env->nic_name, 1, env->fifo_prename);
-    ASSERT(pthread_create(&pt_to_child, NULL, thread_to_child, &link_to_child)
-           == 0);
-    ASSERT(pthread_create
-           (&pt_to_parent, NULL, thread_to_parent, &link_to_parent) == 0);
-    ASSERT(pthread_create(&pt_from_tcp, NULL, thread_from_tcps, &link_from_tcp)
-           == 0);
+    worker[to_child] = link_create(thread_to_child, 0, PIPE_WR(pipe2child));
+    worker[from_tcps] =
+        link_create(thread_from_tcps, 0xDEAD, PIPE_WR(pipe2child));
+    worker[to_parent] = link_create(thread_to_parent, PIPE_RD(pipe2parent), 1);
 
     do {
         //wpid=waitpid( /*childpid*/ /*0*/ -1, &status, WUNTRACED );
         wpid = waitpid(childpid, &status, WUNTRACED);
-        LOGD("CHILD: Wants to exit on signal %d\n", wpid);
+        LOGD("CHILD: Wants to exit on signal %d\n", status);
         ASSERT(wpid >= 0);
     } while (!WIFEXITED(status) && !WIFSIGNALED(status));
-    LOGD("CHILD: Exits on signal %d\n", wpid);
+    LOGD("CHILD: Exits on signal %d\n", status);
 
     //while ( wait((int*)0) != childpid );
 
     LOGD("PARENT: Is exiting.\n");
 
-    pthread_cancel(pt_from_tcp);
+    link_kill(worker[from_tcps]);
     switchboard_die(s);
-    pthread_cancel(pt_to_parent);
-    pthread_cancel(pt_to_child);
+    link_kill(worker[to_parent]);
+    link_kill(worker[to_child]);
 
     close(PIPE_WR(pipe2child));
     close(PIPE_RD(pipe2parent));

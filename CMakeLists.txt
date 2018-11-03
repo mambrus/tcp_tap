@@ -165,6 +165,7 @@ set (EXTRA_LIBS ${EXTRA_LIBS} atcptap)
 
 set(TCP-TAP_SOURCE
 	main.c
+	endpoint_transfers.c
 	env.c
 	sig_mngr.c
 )
