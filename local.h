@@ -5,6 +5,11 @@
 #define _XSTR( X ) #X
 #define STR( X ) _XSTR( X )
 
+struct env;
+
+void env_int(void);
+struct env *env_get();
+
 #ifdef __ANDROID__
 
 /*  <android/log.h> is part of NDK <cutils/log.h> is not. <android/log.h>

@@ -54,28 +54,6 @@
 #define INCLUDE_STDERR 1
 #define NO_STDERR 0
 
-/* Environment overloadable variables. Note: NEVER change these in code
- * unless bug is found as they are considered trusted and safe, and as they
- * will allow tcp_tap to start without any wrapping scripts (important when
- * debugging and testing). Always use the corresponding environment variable
- * */
-
-/* Name of the main process to run */
-char execute_bin[NAME_MAX] = "/bin/sh";
-
-/* Port number */
-char port[NAME_MAX] = "6969";
-
-/* FIFO(s) pre-name */
-char fifo_prename[NAME_MAX] = FIFO_DIR "/tcptap-swtchbrd_";
-
-/* listen at NIC bound to this name (human readable name or
- * IP-address). Aditionaly two special names:
- * @HOSTNAME@: Look up the primary interface bound to this name
- * @ANY@: Allow connection to any of the servers IF
- * */
-char nic_name[NAME_MAX] = "127.0.0.1";
-
 /* TTY attibutes to be saved and resored upon entry, exit */
 struct {
     int tampered;
@@ -84,17 +62,6 @@ struct {
     {
      .tampered = 0}
 };
-
-#define SETFROMENV( envvar, locvar, buf_max)                \
-{                                                           \
-    char *ts;                                               \
-    if ((ts=getenv(#envvar)) != NULL ) {                    \
-        int l;                                              \
-        memset(locvar,0,buf_max);                           \
-        l=strnlen(ts,buf_max);                              \
-        memcpy(locvar,ts,l<buf_max?l:buf_max);              \
-    }                                                       \
-}
 
 /* Transfer types */
 struct data_link {
@@ -229,6 +196,7 @@ int main(int argc, char **argv)
     struct data_link link_to_parent;
     int v = 0, size = argc - 1;
     char *cmd;
+    struct env* env;
 
     log_syslog_config(INCLUDE_STDERR);  /* (Re-) configure sys-log */
     log_set_process_name(argv[0]);
@@ -246,10 +214,8 @@ int main(int argc, char **argv)
             tcgetattr(i, &(tty[i].tty_attr));
     }
 
-    SETFROMENV(TCP_TAP_EXEC, execute_bin, NAME_MAX);
-    SETFROMENV(TCP_TAP_PORT, port, NAME_MAX);
-    SETFROMENV(TCP_TAP_NICNAME, nic_name, NAME_MAX);
-    SETFROMENV(TCP_TAP_FIFO_PRE_NAME, fifo_prename, NAME_MAX);
+    env_int();
+    env = env_get();
 
     cmd = (char *)malloc(v);
     for (i = 1; i <= size; i++) {
@@ -259,14 +225,18 @@ int main(int argc, char **argv)
     }
     LOGD("PARENT: isatty detect {0:%d} {1:%d} {2:%d}\n", isatty(0), isatty(1),
          isatty(2));
-    LOGI("PARENT: starts [%d]: %s %s\n", argc, execute_bin, cmd);
-    LOGI("PARENT: socket [%s:%d]\n", nic_name, port);
+    LOGI("PARENT: starts [%d]: %s %s\n", argc, env->execute_bin, cmd);
+    LOGI("PARENT: socket [%s:%d]\n", env->nic_name, env->port);
     free(cmd);
 
     pipe(pipe2child);
     pipe(pipe2parent);
 
-    exec_args[0] = execute_bin;
+    LOGD("pipe fd:s : ch[0]=%d ch[1]=%d pa[0]=%d pa[1]=%d\n",
+         PIPE_RD(pipe2child), PIPE_WR(pipe2child), PIPE_RD(pipe2parent),
+         PIPE_WR(pipe2parent));
+
+    exec_args[0] = env->execute_bin;
     for (i = 1; i < argc; i++) {
         exec_args[i] = argv[i];
     }
@@ -298,7 +268,7 @@ int main(int argc, char **argv)
 
         LOGD("CHILD: isatty detect part 2 {0:%d} {1:%d} {2:%d}\n",
              isatty(0), isatty(1), isatty(2));
-        execv(execute_bin, exec_args);
+        execv(env->execute_bin, exec_args);
 
         /* Should never execute */
         LOGE("exec error:" __FILE__ " +" STR(__LINE__) " %s", strerror(errno));
@@ -323,7 +293,7 @@ int main(int argc, char **argv)
     link_to_parent.write_to = 1;
     link_to_parent.buffer = buf_to_parent;
 
-    s = switchboard_init(atoi(port), nic_name, 1, fifo_prename);
+    s = switchboard_init(atoi(env->port), env->nic_name, 1, env->fifo_prename);
     ASSERT(pthread_create(&pt_to_child, NULL, to_child, &link_to_child) == 0);
     ASSERT(pthread_create(&pt_to_parent, NULL, to_parent, &link_to_parent) ==
            0);
