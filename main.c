@@ -18,6 +18,7 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include <stdio.h>
+#include <termios.h>
 #include <limits.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -88,6 +89,15 @@ char fifo_prename[NAME_MAX] = FIFO_DIR "/tcptap-swtchbrd_";
  * */
 char nic_name[NAME_MAX] = "127.0.0.1";
 
+/* TTY attibutes to be saved and resored upon entry, exit */
+struct {
+    int tampered;
+    struct termios tty_attr;
+} static tty[3] = {
+    {
+     .tampered = 0}
+};
+
 #define SETFROMENV( envvar, locvar, buf_max)                \
 {                                                           \
     char *ts;                                               \
@@ -107,6 +117,9 @@ struct data_link {
     char *buffer;
 };
 
+/* local functions */
+static void tty_raw_mode(int fd);
+
 /* Threads handing shuffling of data */
 
 /* Transfers stdin and sends to child (and TCP sockes, if any) */
@@ -116,14 +129,18 @@ void *to_child(void *arg)
     struct data_link *lp = (struct data_link *)arg;
 
     ASSERT((wfd = open(switchboard_fifo_names()->in_name, O_WRONLY)) >= 0);
+    if (isatty(lp->read_from))
+        tty_raw_mode(lp->read_from);
 
     while (1) {
+        memset(lp->buffer, 0, BUFF_SZ);
         i = read(lp->read_from, lp->buffer, BUFF_SZ);
         if (i < 0) {
             LOGE("Failed reading from fd=[%d] in %s: " __FILE__ ":"
                  STR(__LINE__), __func__, lp->read_from);
             exit(EXIT_FAILURE);
         }
+        LOGV("R:[%s]\n", lp->buffer);
         j = write(lp->write_to, lp->buffer, i);
         ASSERT(i == j);
         j = write(lp->log_to, lp->buffer, i);
@@ -143,12 +160,14 @@ void *to_parent(void *arg)
     ASSERT((wfd = open(switchboard_fifo_names()->in_name, O_WRONLY)) >= 0);
 
     while (1) {
+        //memset(lp->buffer, 0, BUFF_SZ);
         i = read(lp->read_from, lp->buffer, BUFF_SZ);
         if (i < 0) {
             LOGE("Failed reading from fd=[%d] in %s: " __FILE__ ":"
                  STR(__LINE__), __func__, lp->read_from);
             exit(-1);
         }
+        //LOGV("R:[%s]\n", lp->buffer);
         j = write(lp->write_to, lp->buffer, i);
         ASSERT(i == j);
         j = write(lp->log_to, lp->buffer, i);
@@ -187,6 +206,23 @@ void *from_tcp(void *arg)
     return NULL;
 }
 
+static void tty_raw_mode(int fd)
+{
+    struct termios tty_attr;
+
+    if (fd >= 0 && fd <= 3)
+        tty[fd].tampered++;
+
+    tcgetattr(fd, &tty_attr);
+
+    /* Set raw mode. */
+    tty_attr.c_lflag &= (~(ICANON /*| ECHO */ ));
+    tty_attr.c_cc[VTIME] = 0;
+    tty_attr.c_cc[VMIN] = 1;
+
+    ASSERT(tcsetattr(fd, TCSANOW, &tty_attr) != -1);
+}
+
 #ifndef HAVE_ISATTY_S
 static int isatty(int fd)
 {
@@ -219,6 +255,12 @@ int main(int argc, char **argv)
     /* We're passing sockes as arguments to threads as pass by value. Make
      * sure they fit */
     ASSERT(sizeof(void *) >= sizeof(int));
+
+    /* Back-up tty settings */
+    for (i = 0; i < 3; i++) {
+        if (isatty(i))
+            tcgetattr(i, &(tty[i].tty_attr));
+    }
 
     SETFROMENV(TCP_TAP_EXEC, execute_bin, NAME_MAX);
     SETFROMENV(TCP_TAP_PORT, port, NAME_MAX);
@@ -362,5 +404,14 @@ int main(int argc, char **argv)
     close(stderrlog_fd);
     close(PIPE_WR(pipe2child));
     close(PIPE_RD(pipe2parent));
+
+    /* Restore tty settings */
+    for (i = 0; i < 3; i++) {
+        if (isatty(i) && tty[i].tampered) {
+            LOGD("Restore tty[%d] tampered [%d] times\n", i, tty[i].tampered);
+            tcsetattr(i, TCSANOW, &(tty[i].tty_attr));
+        }
+    }
+    LOGI("PARENT: Thank you for the fish!\n");
     return 0;
 }
