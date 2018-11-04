@@ -78,9 +78,10 @@ struct switch_struct ss = {
 
 static void write_toall(const char *buf, int len);
 static void *in_session_thread(void *arg);
-static void *handle_in_fifo_thread(void *arg);
-static void *connect_mngmt_thread(void *arg);
 static void disconnect_servlet(struct serv_node *node);
+static void *thread_handle_in_fifo(void *arg);
+static void *thread_connect_mngmt(void *arg);
+static void *thread_in_session(void *inarg);
 
 static int init_switchboard(int port, const char *hostname, int echoall)
 {
@@ -113,11 +114,11 @@ struct switch_fifo *switchboard_fifo_names()
     return &switch_fifo;
 }
 
-/* Handling incoming data from own session. I.e. one thread per connection
+/* Handling incoming data from own TCP session. I.e. one thread per connection
  * handle it's in-data. Read data is written both to fifo-out (i.e. back to
  * connecting process) and to all other connected sessions.
  */
-static void *in_session_thread(void *inarg)
+static void *thread_in_session(void *inarg)
 {
     int rn, sn;
     struct serv_node *node = (struct serv_node *)inarg;
@@ -151,7 +152,7 @@ static void *in_session_thread(void *inarg)
 /* Thread reading data FROM in_fifo and writes TO all connected
  * socket sessions.
  */
-static void *handle_in_fifo_thread(void *arg)
+static void *thread_handle_in_fifo(void *arg)
 {
     char buf[BUFF_SZ];
     int rn, fd;
@@ -192,7 +193,7 @@ static void disconnect_servlet(struct serv_node *node)
  * created per each connection and the connection is inserted in the
  * switchboard list.
  */
-static void *connect_mngmt_thread(void *arg)
+static void *thread_connect_mngmt(void *arg)
 {
     int fd;
     struct serv_node *tn, **lnp, *lp = NULL;
@@ -219,13 +220,13 @@ static void *connect_mngmt_thread(void *arg)
         (*lnp)->prev = lp;
 
         ss.n++;
-        ASSERT(pthread_create(&tn->thread, NULL, in_session_thread, (void *)tn)
+        ASSERT(pthread_create(&tn->thread, NULL, thread_in_session, (void *)tn)
                == 0);
         //sleep(10);
     }
 
-	 /* Will never execute, just stop gcc from complaining*/
-	 return NULL;
+    /* Will never execute, just stop gcc from complaining */
+    return NULL;
 }
 
 int switchboard_init(int port, const char *host, int echo, const char *prename)
@@ -244,7 +245,7 @@ int switchboard_init(int port, const char *host, int echo, const char *prename)
     if (prename == NULL) {
         strncpy(tprename, FIFO_DIR "/fifo_switchboard", NAME_MAX);
     } else {
-        strncpy(tprename, prename, strnlen(prename,NAME_MAX));
+        strncpy(tprename, prename, strnlen(prename, NAME_MAX));
     }
 
     snprintf(tin_name, NAME_MAX, "%s_%s_%d", tprename, "in", pid);
@@ -261,11 +262,11 @@ int switchboard_init(int port, const char *host, int echo, const char *prename)
 
     s = init_switchboard(port, host, echo);
 
-    ASSERT(pthread_create(&threads.to_swtch, NULL, handle_in_fifo_thread, NULL)
+    ASSERT(pthread_create(&threads.to_swtch, NULL, thread_handle_in_fifo, NULL)
            == 0);
 
     ASSERT(pthread_create
-           (&threads.mngmt, NULL, connect_mngmt_thread,
+           (&threads.mngmt, NULL, thread_connect_mngmt,
             (void *)((intptr_t) s)) == 0);
     return s;
 }

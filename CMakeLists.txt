@@ -48,6 +48,8 @@ CHECK_SYMBOL_EXISTS("pthread_cancel" "pthread.h" HAVE_PTHREAD_CANCEL_S)
 CHECK_FUNCTION_EXISTS("pthread_create"  HAVE_PTHREAD_CREATE_F)
 CHECK_SYMBOL_EXISTS("pthread_create" "pthread.h" HAVE_PTHREAD_CREATE_S)
 
+CHECK_SYMBOL_EXISTS("isatty" "unistd.h" HAVE_ISATTY_S)
+
 ################################################################################
 # Configuration options
 ################################################################################
@@ -162,7 +164,10 @@ set_target_properties(
 set (EXTRA_LIBS ${EXTRA_LIBS} atcptap)
 
 set(TCP-TAP_SOURCE
-	main.c  sig_mngr.c
+	main.c
+	endpoint_transfers.c
+	env.c
+	sig_mngr.c
 )
 add_executable(tcp-tap ${TCP-TAP_SOURCE})
 target_link_libraries (tcp-tap atcptap ${EXTRA_LIBS})
